@@ -1,0 +1,53 @@
+#pragma kernel CSFrustumCulling
+
+cbuffer Params
+{
+    int _InstanceCount;
+};
+
+struct PositionData
+{
+    float3 position; // 4x4 matrix for position and rotation
+};
+
+struct FrustumPlanes
+{
+    float3 normal;
+    float distance;
+};
+
+
+RWStructuredBuffer<PositionData> positionBuffer;
+AppendStructuredBuffer<uint> visibleIndices;
+StructuredBuffer<FrustumPlanes> frustumPlanesBuffer;
+
+bool IsInsideFrustum(float3 position)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        float3 planeNormal = frustumPlanesBuffer[i].normal;
+        float planeDistance = frustumPlanesBuffer[i].distance;
+        if (dot(position, planeNormal) + planeDistance < 0)
+            return false;
+    }
+    return true;
+}
+
+[numthreads(256,1, 1)]
+void CSFrustumCulling(uint3 id : SV_DispatchThreadID)
+{
+    
+    uint index = id.x;
+    
+   if (index >= _InstanceCount) 
+        return;
+    
+    PositionData td = positionBuffer[index];
+    bool inside = IsInsideFrustum(td.position);
+
+    if (inside)
+    {
+        visibleIndices.Append(index);
+    }
+  
+}

@@ -440,13 +440,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5de63ca81a14fd94b9b339120a009eae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  propagationData: {fileID: 11400000, guid: 73a34b058623b3740a194f18b13f3930, type: 2}
-  useFrustumCulling: 1
-  useSpecificCamera: 0
-  specificCamera: {fileID: 330585545}
-  smoothThreshold: 2
-  updateMode: 1
-  shader: {fileID: 7200000, guid: ea940696e28f8c54b9103241e7b2d65f, type: 3}
+  SceneData: {fileID: 11400000, guid: 73a34b058623b3740a194f18b13f3930, type: 2}
+  currentCamera: {fileID: 330585545}
+  frustumCullingShader: {fileID: 7200000, guid: e82eedd14c716fc4ea275d5898382edc, type: 3}
+  frustumSmoothDistance: 0.1
 --- !u!95 &617464092
 Animator:
   serializedVersion: 7

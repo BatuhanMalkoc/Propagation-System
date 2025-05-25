@@ -1,8 +1,21 @@
 using UnityEngine;
 using System.Collections.Generic;
-[System.Serializable]
-public struct PropagationObjectData 
+
+
+
+namespace PropagationSystem
 {
-   public List<Matrix4x4> trsMatrices;  //Transform , Rotation , Scale
-    public int meshIndex; // Added
+    [System.Serializable]
+    public struct TransformData
+    {
+        public List<Matrix4x4> trsMatrices;  //Transform , Rotation , Scale
+        public int meshIndex; // Added
+    }
+
+
+    public struct TransformTransferData
+    {
+        public Matrix4x4 trsMatrices;  //Transform , Rotation , Scale
+    }
+
 }
