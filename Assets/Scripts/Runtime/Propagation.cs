@@ -2,6 +2,7 @@
 using PropagationSystem;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using System.Collections;
 
 namespace PropagationSystem
 {
@@ -10,6 +11,8 @@ namespace PropagationSystem
         [SerializeField] private SceneData SceneData;
 
         [SerializeField] Camera currentCamera;
+
+        [SerializeField] private OnCameraUpdate onCameraUpdate;
 
         ComputeBuffer planesBuffer;
 
@@ -21,7 +24,28 @@ namespace PropagationSystem
 
         List<Renderer> renderersList = new List<Renderer>();
 
+        bool isFrustumCalculationNeeded = false;
 
+        private void OnEnable()
+        {
+            onCameraUpdate.OnCameraUpdated += SetFlagToFrustumCulling;
+        }
+
+        private void OnDisable()
+        {
+            onCameraUpdate.OnCameraUpdated -= SetFlagToFrustumCulling;
+        }
+
+        private void OnDestroy()
+        {
+            planesBuffer.Release();
+        }
+
+        void SetFlagToFrustumCulling()
+        {
+            isFrustumCalculationNeeded = true;
+
+        }
         private void Awake()
         {
             Initialize();
@@ -44,7 +68,7 @@ namespace PropagationSystem
                 }
 
             }
-
+      
         }
 
 
@@ -103,15 +127,24 @@ namespace PropagationSystem
 
         private void LateUpdate()
         {
-            CalculateFrustum();
+            if (isFrustumCalculationNeeded)
+            {
+                CalculateFrustum();
+            }
             foreach (Renderer renderer in renderersList)
             {
                 renderer.Render();
-                renderer.UpdateFrustum(planesBuffer);
+                if (isFrustumCalculationNeeded)
+                {
+                    renderer.UpdateFrustum(planesBuffer);
+                   
+                }
             }
            
+            isFrustumCalculationNeeded= false;
 
         }
+
 
         private void Update()
         {
@@ -146,6 +179,9 @@ namespace PropagationSystem
                 }
             }
         }
+
+
+      
 
     }
 }

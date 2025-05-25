@@ -266,14 +266,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 330585543}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 58f37a62c408c0841810236a27270d0b, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b9e200a01cc16549a1a114b8ec27d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 330585545}
-  lastRotation: {x: 0, y: 0, z: 0, w: 0}
-  lastPosition: {x: 0, y: 0, z: 0}
-  lastFov: 0
-  lastClipPlanes: {x: 0, y: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,7 +400,6 @@ GameObject:
   m_Component:
   - component: {fileID: 617464090}
   - component: {fileID: 617464091}
-  - component: {fileID: 617464092}
   m_Layer: 0
   m_Name: Propagation
   m_TagString: Untagged
@@ -442,30 +436,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SceneData: {fileID: 11400000, guid: 73a34b058623b3740a194f18b13f3930, type: 2}
   currentCamera: {fileID: 330585545}
+  onCameraUpdate: {fileID: 330585548}
   frustumCullingShader: {fileID: 7200000, guid: e82eedd14c716fc4ea275d5898382edc, type: 3}
-  frustumSmoothDistance: 0.1
---- !u!95 &617464092
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 617464089}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
+  frustumSmoothDistance: 2
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

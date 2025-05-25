@@ -145,6 +145,7 @@ public class Renderer
             if (visibleCount == 0) return;
 
             Graphics.RenderMeshIndirect(rp, mesh, argsBuffer);
+
         }
 
         public void UpdateFrustum(ComputeBuffer newFrustumPlanesBuffer)
