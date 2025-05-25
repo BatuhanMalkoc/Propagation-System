@@ -159,7 +159,7 @@ namespace PropagationSystem
             for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
             {
                 // 100 adet rastgele matris oluştur
-                for (int j = 0; j < 100; j++)
+                for (int j = 0; j < 10000; j++)
                 {
                     // Rastgele pozisyon, rotasyon ve ölçek oluştur
                     Vector3 position = new Vector3(
