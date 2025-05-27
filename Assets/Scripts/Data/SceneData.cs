@@ -26,6 +26,12 @@ namespace PropagationSystem
         {
             int newCount = propagatedMeshDefinitions.Count;
 
+            if(propagatedMeshDefinitionCount == newCount)
+            {
+                // Eðer mesh definition sayýsý deðiþmemiþse, hiçbir þey yapma
+                return;
+            }
+
             #region Ekleme (Yeni mesh definition eklendiðinde)
             if (propagatedMeshDefinitionCount < newCount)
             {
