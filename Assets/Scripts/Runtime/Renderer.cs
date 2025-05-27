@@ -111,22 +111,12 @@ public class Renderer
             };
 
 
-            WarmUpFrustrumCoroutine();
-
+            
         }
 
 
 
-        IEnumerator WarmUpFrustrumCoroutine()
-        {
-
-            for (int i = 0; i < 5; i++)
-            {
-                UpdateFrustum(planesBuffer);
-                yield return null;
-            }
-
-        }
+     
 
 
 

@@ -68,7 +68,8 @@ namespace PropagationSystem
                 }
 
             }
-      
+
+            StartCoroutine(WarmUpFrustums());
         }
 
 
@@ -150,7 +151,20 @@ namespace PropagationSystem
             isFrustumCalculationNeeded= false;
 
         }
+        private IEnumerator WarmUpFrustums()
+        {
+            foreach (Renderer renderer in renderersList)
+            {
+                for (int i = 0; i < 5; i++)
+                {
 
+                    CalculateFrustum();
+                    renderer.UpdateFrustum(planesBuffer);
+                    yield return new WaitForSecondsRealtime(0.05f);
+                }
+               
+            }
+        }
 
         private void Update()
         {
