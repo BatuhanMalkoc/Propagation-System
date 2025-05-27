@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
+using UnityEditor;
 
 namespace PropagationSystem
 {
@@ -12,6 +13,7 @@ namespace PropagationSystem
         /// <summary>Mesh'e karþýlýk gelen object datasý listesi</summary>
         public List<TransformData> propagatedObjectDatas = new List<TransformData>();
 
+        
         /// <summary>Tanýmlý mesh verileri listesi</summary>
         public List<MeshData> propagatedMeshDefinitions = new List<MeshData>();
 
@@ -26,43 +28,20 @@ namespace PropagationSystem
         {
             int newCount = propagatedMeshDefinitions.Count;
 
-            if(propagatedMeshDefinitionCount == newCount)
-            {
-                // Eðer mesh definition sayýsý deðiþmemiþse, hiçbir þey yapma
+            // Eðer mesh definition sayýsý deðiþmemiþse, hiçbir þey yapma
+            if (propagatedMeshDefinitionCount == newCount)
                 return;
-            }
 
-            #region Ekleme (Yeni mesh definition eklendiðinde)
-            if (propagatedMeshDefinitionCount < newCount)
-            {
-                int addedCount = newCount - propagatedMeshDefinitionCount;
-
-                for (int i = 0; i < addedCount; i++)
-                {
-                    int newIndex = propagatedMeshDefinitionCount + i;
-
-                    // propagatedMeshDefinitions struct olduðu için önce kopya al, sonra deðiþtir, tekrar ata
-                    var meshData = propagatedMeshDefinitions[newIndex];
-                    meshData.meshIndex = newIndex;
-                    propagatedMeshDefinitions[newIndex] = meshData;
-
-                    var newObjData = new TransformData();
-                    newObjData.meshIndex = newIndex;
-
-                    propagatedObjectDatas.Insert(newIndex, newObjData);
-                    indexs.Insert(newIndex, newIndex);
-                }
-            }
-            #endregion
-
-
-            #region Silme (Mesh definition silindiyse)
+            // Silinmiþse, eski meshIndex'e göre karþýlaþtýr
             if (propagatedMeshDefinitionCount > newCount)
             {
+                // Þu anki meshIndex'lerin listesi
                 List<int> currentMeshIndices = propagatedMeshDefinitions.Select(x => x.meshIndex).ToList();
-                List<int> fark = indexs.Except(currentMeshIndices).ToList();
 
-                foreach (int silinecekMeshIndex in fark)
+                // Kayýtlý index'lerde olup þu an olmayanlarý bul
+                List<int> silinecekler = indexs.Except(currentMeshIndices).ToList();
+
+                foreach (int silinecekMeshIndex in silinecekler)
                 {
                     int deleteIndex = propagatedObjectDatas.FindIndex(x => x.meshIndex == silinecekMeshIndex);
 
@@ -74,23 +53,24 @@ namespace PropagationSystem
                     }
                 }
             }
-            #endregion
+            if(propagatedMeshDefinitionCount < newCount)
+            {
+                propagatedObjectDatas.Add(new TransformData() { meshIndex = newCount-1});
+               
+            }
 
-
-            #region MeshIndex Güncelleme
+            // Mevcut tüm mesh'lerin meshIndex'lerini doðru sýraya göre güncelle
             for (int i = 0; i < propagatedMeshDefinitions.Count; i++)
             {
-                // propagatedMeshDefinitions struct olduðu için kopya üzerinde deðiþiklik yap
                 var meshData = propagatedMeshDefinitions[i];
                 meshData.meshIndex = i;
                 propagatedMeshDefinitions[i] = meshData;
 
                 if (i < propagatedObjectDatas.Count)
                 {
-                    // propagatedObjectDatas struct, ayný þekilde kopya alýp deðiþtir
-                    TransformData updated = propagatedObjectDatas[i];
-                    updated.meshIndex = i;
-                    propagatedObjectDatas[i] = updated;
+                    var objData = propagatedObjectDatas[i];
+                    objData.meshIndex = i;
+                    propagatedObjectDatas[i] = objData;
                 }
 
                 if (i < indexs.Count)
@@ -98,18 +78,17 @@ namespace PropagationSystem
                 else
                     indexs.Add(i);
             }
-            #endregion
 
-
-            #region Liste Temizliði (fazla öðeleri sil)
+            // Fazla elemanlarý temizle
             while (indexs.Count > propagatedMeshDefinitions.Count)
                 indexs.RemoveAt(indexs.Count - 1);
 
             while (propagatedObjectDatas.Count > propagatedMeshDefinitions.Count)
                 propagatedObjectDatas.RemoveAt(propagatedObjectDatas.Count - 1);
-            #endregion
 
             propagatedMeshDefinitionCount = propagatedMeshDefinitions.Count;
         }
+
     }
+
 }

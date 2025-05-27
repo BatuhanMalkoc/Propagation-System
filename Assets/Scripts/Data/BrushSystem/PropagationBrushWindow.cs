@@ -35,11 +35,18 @@ namespace PropagationSystem.Editor
             {
                 Matrix4x4 trsMatrix = Matrix4x4.TRS(datas[i].position, Quaternion.LookRotation(datas[i].normal), Vector3.one);
 
-                sceneData.propagatedObjectDatas[0].trsMatrices.Add(trsMatrix);
-                EditorUtility.SetDirty(sceneData);
+
+                SavedPositions savedPositions = new SavedPositions();
+                savedPositions.position = datas[i].position;
+                savedPositions.rotation = Quaternion.LookRotation(datas[i].normal);
+                savedPositions.scale = Vector3.one;
+
+               
+                sceneData.propagatedObjectDatas[0].trsMatrices.Add(savedPositions);
+                
             }
 
-          
+          EditorUtility.SetDirty(sceneData);
 
 
         }

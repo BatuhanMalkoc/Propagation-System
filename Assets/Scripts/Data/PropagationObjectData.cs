@@ -1,21 +1,39 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 
 
 namespace PropagationSystem
 {
-    [System.Serializable]
+    [Serializable]
     public struct TransformData
     {
-        public List<Matrix4x4> trsMatrices;  //Transform , Rotation , Scale
-        public int meshIndex; // Added
+       
+        public List<SavedPositions> trsMatrices;  //Transform , Rotation , Scale
+         public int meshIndex; // Added
     }
+
+  
+
+ 
 
 
     public struct TransformTransferData
     {
         public Matrix4x4 trsMatrices;  //Transform , Rotation , Scale
     }
+
+
+    [Serializable]
+    public struct SavedPositions
+    {
+      [SerializeReference]  public Vector3 position;
+        [SerializeReference] public Quaternion rotation;
+        [SerializeReference]  public Vector3 scale;
+    }
+
+
+
 
 }

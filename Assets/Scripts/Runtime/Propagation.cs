@@ -82,7 +82,10 @@ namespace PropagationSystem
 
             for (int j = 0; j < SceneData.propagatedObjectDatas[i].trsMatrices.Count; j++)
             {
-                trs[j].trsMatrices = SceneData.propagatedObjectDatas[i].trsMatrices[j];
+                TransformData data = SceneData.propagatedObjectDatas[i];
+                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
+
+                trs[j].trsMatrices = transferMatrix;
             }
 
 
@@ -100,7 +103,10 @@ namespace PropagationSystem
 
             for (int j = 0; j < SceneData.propagatedObjectDatas[i].trsMatrices.Count; j++)
             {
-                trs[j].trsMatrices = SceneData.propagatedObjectDatas[i].trsMatrices[j];
+                TransformData data = SceneData.propagatedObjectDatas[i];
+                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
+
+                trs[j].trsMatrices = transferMatrix;
             }
 
 
@@ -148,37 +154,10 @@ namespace PropagationSystem
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                CreateRandomMatrices();
-            }
+           
         }
 
-        void CreateRandomMatrices()
-        {
-            for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
-            {
-                // 100 adet rastgele matris oluştur
-                for (int j = 0; j < 10000; j++)
-                {
-                    // Rastgele pozisyon, rotasyon ve ölçek oluştur
-                    Vector3 position = new Vector3(
-                        Random.Range(-100f, 100f),
-                        Random.Range(-100f, 100f),
-                        Random.Range(-100f, 100f)
-                    );
-                    Quaternion rotation = Random.rotation;
-                    Vector3 scale = Vector3.one;
-                       
-               
-                    // TRS matrisi oluştur
-                    Matrix4x4 trs = Matrix4x4.TRS(position, rotation, scale);
-
-                    // Listeye ekle
-                    SceneData.propagatedObjectDatas[i].trsMatrices.Add(trs);
-                }
-            }
-        }
+      
 
 
       
