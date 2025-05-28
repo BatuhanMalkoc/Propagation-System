@@ -60,15 +60,8 @@ namespace PropagationSystem
             {
 
                 if (SceneData.propagatedObjectDatas[i].trsMatrices.Count > 0)
-                {
-                    if (SceneData.propagatedMeshDefinitions[i].useFrustumCulling)
-                    {
+                {            
                         renderersList.Add(CreateFrustumRenderer(i));
-                    }
-                    else
-                    {
-                        renderersList.Add(CreateNonFrustumRenderer(i));
-                    }
                 }
             }
 
@@ -76,6 +69,7 @@ namespace PropagationSystem
         }
 
 
+        [System.Obsolete]
         Renderer CreateNonFrustumRenderer(int i)
         {
 

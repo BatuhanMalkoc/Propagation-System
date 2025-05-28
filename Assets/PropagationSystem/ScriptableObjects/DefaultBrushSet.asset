@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   brushes:
   - {fileID: 11400000, guid: 4473da0caf7b62f45a8010dc298e8f91, type: 2}
+  - {fileID: 11400000, guid: 6a5f1b4a229fe044089822b0302824e2, type: 2}

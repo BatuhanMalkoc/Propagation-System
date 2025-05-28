@@ -6,7 +6,7 @@ using PropagationSystem.Editor;
 using Unity.VisualScripting;
 using UnityEditor.Analytics;
 using System.IO;
-
+using System;
 namespace PropagationSystem.Editor
 {
 #if UNITY_EDITOR
@@ -18,6 +18,7 @@ namespace PropagationSystem.Editor
 
         private static SceneData sceneData;
         private static int selectedMeshIndex_Static;
+        public static Action<int> OnBrushStroke;
 
         #endregion
 
@@ -156,7 +157,7 @@ namespace PropagationSystem.Editor
             }
 
           EditorUtility.SetDirty(sceneData);
-
+            OnBrushStroke?.Invoke(selectedMeshIndex_Static);
 
         }
 
@@ -587,6 +588,7 @@ namespace PropagationSystem.Editor
             else if (sceneData.propagatedMeshDefinitions.Count == 0)
             {
                 EditorGUILayout.HelpBox("Add Atleast One Mesh To Propagate", MessageType.Warning);
+                EditorGUILayout.EndVertical();
                 GUI_CreateNewMesh();
                 return;
             }
@@ -624,11 +626,23 @@ namespace PropagationSystem.Editor
                 Refresh();
             }
 
-            if(selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count)
+            if(selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count ||selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
             {
                 selectedMeshIndex_Static = 0;
                 selectedMeshIndex = 0;
             }
+
+            if(GUILayout.Button("Start Previewing"))
+            {
+                EditorPreviewer.Setup(sceneData);
+                EditorPreviewer.SetPreviewMode(true);
+
+            }
+            if(GUILayout.Button("Stop Previewing"))
+            {
+                EditorPreviewer.SetPreviewMode(false);
+            }
+
             UpdatePropagationBrush();
 
                   
@@ -659,11 +673,13 @@ namespace PropagationSystem.Editor
 
             selectedMeshIndex = EditorPrefs.GetInt(SelectedMeshIndex_PrefKey, 0);
 
-            if (selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
+            if (sceneData != null)
             {
-                selectedMeshIndex = 0;
+                if (selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
+                {
+                    selectedMeshIndex = 0;
+                }
             }
-
             
 
             selectedBrushIndex = EditorPrefs.GetInt(SelectedBrushIndex_PrefKey, 0);    

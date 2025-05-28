@@ -35,6 +35,7 @@ public class Renderer
 
 
         #region Constructor Without Frustum Culling
+ 
         public Renderer(Mesh mesh,Material material,ComputeShader shader, TransformTransferData[] trs)
         {
             this.mesh = mesh;
