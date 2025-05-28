@@ -31,8 +31,8 @@ namespace PropagationSystem.Editor
         private int density = 50;
         private bool isBrushEnabled = false; // Brush'un aktif olup olmadýðýný tutar
         private int selectedBrushIndex;
-        private Mesh brushMesh;
-        private Material brushMaterial;
+        private static Mesh brushMesh;
+        private static Material brushMaterial;
         public enum BrushMode
         {
             Paint,
@@ -73,10 +73,12 @@ namespace PropagationSystem.Editor
         private const string ERASEICONGUID = "b1c9c7ca80357484b993b162ad1bf81b";
         private const string PROPAGATIONICONGUID = "53b798f87c3af534893455e7f6514777";
         private const string REMOVEBRUSHICONGUID = "d3ef903f0f464a84396bb1ca53951c6b";
-            private const string ADDBRUSHICONGUID = "391b56a0b0f4c714aab3c36bd98ed49f";
+        private const string ADDBRUSHICONGUID = "391b56a0b0f4c714aab3c36bd98ed49f";
         private const string ADDMESHTYPEICONGUID = "16c2e3a7c6ce0284f99dee00097bf695";
         private const string REMOVEMESHTYPEICONGUID = "76dcae87ac35952478b0c03f6443e691";
         private const string DEFAULTBRUSHGUID = "8c4177208ea9dda4b86c883af3f144f9";
+        private const string BRUSHPLANEGUID = "c165c719ed1e59d46a5ae3c460f62d64";
+        private const string BRUSHMATERIALGUID = "e253b5f545f25494b97e5e5eacebf0b9";
         #endregion
 
         #endregion
@@ -87,8 +89,29 @@ namespace PropagationSystem.Editor
         public static void OpenWindow()
         {
            var window = GetWindow<PropagationBrushWindow>("Propagation Brush");
+
+            string brushMeshPath = AssetDatabase.GUIDToAssetPath(BRUSHPLANEGUID);
+            brushMesh = (Mesh) EditorGUIUtility.Load(brushMeshPath) as Mesh;
+            string brushMaterialPath = AssetDatabase.GUIDToAssetPath(BRUSHMATERIALGUID);
+            brushMaterial = (Material) EditorGUIUtility.Load(brushMaterialPath) as Material;
             window.minSize = new Vector2(409, 1004);
         }
+
+
+
+        public static void Refresh()
+        {
+            string brushMeshPath = AssetDatabase.GUIDToAssetPath(BRUSHPLANEGUID);
+            string brushMaterialPath = AssetDatabase.GUIDToAssetPath(BRUSHMATERIALGUID);
+
+            brushMesh = (Mesh)EditorGUIUtility.Load(brushMeshPath) as Mesh;
+            brushMaterial = (Material)EditorGUIUtility.Load(brushMaterialPath) as Material;
+            
+        }
+
+
+
+
         public static SceneData GetCurrentSceneData()
         {
             return sceneData;
@@ -124,7 +147,9 @@ namespace PropagationSystem.Editor
                 savedPositions.rotation = datas[i].rotation;
                 savedPositions.scale = datas[i].scale;
 
-               
+
+
+
                 sceneData.propagatedObjectDatas[selectedMeshIndex_Static].trsMatrices.Add(savedPositions);
 
                 Debug.Log("Eklendi" + selectedMeshIndex_Static);
@@ -556,6 +581,7 @@ namespace PropagationSystem.Editor
             if (sceneData == null)
             {
                 EditorGUILayout.HelpBox("Assign A Scene Data First", MessageType.Warning);
+                EditorGUILayout.EndVertical();
                 return;
             }
             else if (sceneData.propagatedMeshDefinitions.Count == 0)
@@ -564,26 +590,45 @@ namespace PropagationSystem.Editor
                 GUI_CreateNewMesh();
                 return;
             }
+
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             GUI_BrushSet();
+
             EditorGUILayout.Space(2);
+
             EditorGUILayout.EndVertical();
+
             if (brushSet == null)
             {
                 EditorGUILayout.HelpBox("Assign A Brush Set", MessageType.Warning);
+                EditorGUILayout.EndVertical();
                 return;
             }
          
             GUI_BrushSettings();
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.Space(2);
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUI_MeshList();
-            EditorGUILayout.EndVertical();
-            
-            brushMesh = (Mesh)EditorGUILayout.ObjectField(brushMesh, typeof(Mesh), true);
-            brushMaterial = (Material)EditorGUILayout.ObjectField(brushMaterial, typeof(Material), true);
 
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            GUI_MeshList();
+
+            EditorGUILayout.EndVertical();
+
+
+            if (brushMesh == null || brushMaterial == null)
+            {
+
+                Refresh();
+            }
+
+            if(selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count)
+            {
+                selectedMeshIndex_Static = 0;
+                selectedMeshIndex = 0;
+            }
             UpdatePropagationBrush();
 
                   

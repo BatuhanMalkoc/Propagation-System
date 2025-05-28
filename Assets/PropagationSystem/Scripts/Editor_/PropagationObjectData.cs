@@ -9,6 +9,12 @@ namespace PropagationSystem
     {
         public List<SavedPositions> trsMatrices;  //Transform , Rotation , Scale
          public int meshIndex; // Added
+
+        public TransformData(bool init = true)
+        {
+            trsMatrices = new List<SavedPositions>();
+            meshIndex = -1;
+        }
     }
 
     public struct TransformTransferData

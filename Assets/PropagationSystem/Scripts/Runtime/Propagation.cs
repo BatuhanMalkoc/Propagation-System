@@ -58,15 +58,18 @@ namespace PropagationSystem
 
             for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
             {
-                if (SceneData.propagatedMeshDefinitions[i].useFrustumCulling)
-                {
-                    renderersList.Add(CreateFrustumRenderer(i));
-                }
-                else
-                {
-                    renderersList.Add(CreateNonFrustumRenderer(i));
-                }
 
+                if (SceneData.propagatedObjectDatas[i].trsMatrices.Count > 0)
+                {
+                    if (SceneData.propagatedMeshDefinitions[i].useFrustumCulling)
+                    {
+                        renderersList.Add(CreateFrustumRenderer(i));
+                    }
+                    else
+                    {
+                        renderersList.Add(CreateNonFrustumRenderer(i));
+                    }
+                }
             }
 
             StartCoroutine(WarmUpFrustums());

@@ -46,7 +46,13 @@ namespace PropagationSystem.Editor
                 {
 
                     MeshData createdMeshData = new MeshData() { mesh = mesh, material = material, name = meshName, useFrustumCulling = useFrustumCulling };
+
+                   
+
                     sceneData.propagatedMeshDefinitions.Add(createdMeshData);
+
+
+                    EditorUtility.SetDirty(sceneData);
                     sceneData.OnValidateExternalCall();
                     Close();
                 }

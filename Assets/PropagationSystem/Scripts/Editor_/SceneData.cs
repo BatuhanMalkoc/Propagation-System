@@ -54,7 +54,7 @@ namespace PropagationSystem
             }
             if(propagatedMeshDefinitionCount < newCount)
             {
-                propagatedObjectDatas.Add(new TransformData() { meshIndex = newCount-1});
+                propagatedObjectDatas.Add(new TransformData(true) { meshIndex = newCount-1});
                
             }
 
@@ -120,7 +120,7 @@ namespace PropagationSystem
             }
             if (propagatedMeshDefinitionCount < newCount)
             {
-                propagatedObjectDatas.Add(new TransformData() { meshIndex = newCount - 1 });
+                propagatedObjectDatas.Add(new TransformData(true) { meshIndex = newCount - 1 });
 
             }
 

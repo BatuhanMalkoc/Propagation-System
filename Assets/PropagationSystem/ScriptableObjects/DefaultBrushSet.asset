@@ -9,9 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b9f84448d2c613b47b84dcc133bd1c4d, type: 3}
-  m_Name: First_1
+  m_Script: {fileID: 11500000, guid: b337f9cf2095b8f46b36b20111120def, type: 3}
+  m_Name: DefaultBrushSet
   m_EditorClassIdentifier: 
-  maskTexture: {fileID: 2800000, guid: 391b56a0b0f4c714aab3c36bd98ed49f, type: 3}
-  Invert: 0
-  brushName: First
+  brushes:
+  - {fileID: 11400000, guid: 4473da0caf7b62f45a8010dc298e8f91, type: 2}
