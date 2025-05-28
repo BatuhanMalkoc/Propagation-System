@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: DefaultBrushSet
   m_EditorClassIdentifier: 
   brushes:
-  - {fileID: 11400000, guid: 0fd8d5711f431cb4fa65894e18f90b84, type: 2}
-  - {fileID: 11400000, guid: 622ac041f33f8b442a7eebbf2e82dbb8, type: 2}
+  - {fileID: 11400000, guid: 4473da0caf7b62f45a8010dc298e8f91, type: 2}
+  - {fileID: 11400000, guid: 4580229c3efe08648b3164b17f49e77e, type: 2}
+  - {fileID: 11400000, guid: 7d8295a90bad7e84c8bf95e5864661af, type: 2}
+  - {fileID: 11400000, guid: e44e67465175d7f48817b342dd846401, type: 2}
