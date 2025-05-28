@@ -20,6 +20,8 @@ namespace PropagationSystem
 
         [SerializeField] private float frustumSmoothDistance = 0.1f; // Frustum culling için yumuşatma
 
+        [SerializeField,Range(0,1)] private float maxViewDistance = 1;
+
         Plane[] frustumPlanes = new Plane[6];
 
         List<Renderer> renderersList = new List<Renderer>();
@@ -122,9 +124,15 @@ namespace PropagationSystem
             for (int i = 0; i < frustumPlanes.Length; i++)
             {
                 fp[i].normal = frustumPlanes[i].normal;
-                fp[i].distance = frustumPlanes[i].distance + frustumSmoothDistance;
-            }
 
+
+                fp[i].distance = frustumPlanes[i].distance + frustumSmoothDistance;
+
+                if (i == 5)
+                {
+                    fp[5].distance -= Mathf.Lerp(frustumPlanes[5].distance, 0, maxViewDistance);  
+                }
+            }
             planesBuffer.SetData(fp);
         }
 

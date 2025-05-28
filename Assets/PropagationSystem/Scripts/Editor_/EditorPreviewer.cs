@@ -61,6 +61,8 @@ public static class EditorPreviewer
     }
     public static void OnSceneDataChanged(int index)
     {
+
+        if(!isInitialized) return;
         TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].trsMatrices.Count];
 
         for (int j = 0; j < SceneData.propagatedObjectDatas[index].trsMatrices.Count; j++)
@@ -70,7 +72,12 @@ public static class EditorPreviewer
 
             trs[j].trsMatrices = transferMatrix;
         }
-
+        if (renderers.Count <= index)
+        {
+            DisposeRenderers();
+            renderers.Clear();
+            Initialize();
+        }
 
         renderers[index].Update(trs);
     }
@@ -78,12 +85,9 @@ public static class EditorPreviewer
 
         isInitialized = false;
         isPreviewing = false;
-        
-        foreach(EditorRenderer renderer in renderers)
-        {
-            renderer.DisposeAll();
-        }
 
+
+        DisposeRenderers();
 
 
         renderers.Clear();
@@ -96,6 +100,13 @@ public static class EditorPreviewer
        
     }
 
+    static void DisposeRenderers()
+    {
+        foreach (EditorRenderer renderer in renderers)
+        {
+            renderer.DisposeAll();
+        }
+    }
 
     static EditorPreviewer()
     {
@@ -132,19 +143,21 @@ public static class EditorPreviewer
     {
         if (SceneData == null&&isInitialized) { return; }
 
-        planesBuffer = new ComputeBuffer(6, sizeof(float) * 4);
+      
+            planesBuffer = new ComputeBuffer(6, sizeof(float) * 4);
+       
         CalculateFrustum();
 
         if (frustumComputeShader == null)
         {
             string shaderPath = AssetDatabase.GUIDToAssetPath(FRUSTUMCOMPUTESHADERGUID);
             frustumComputeShader = EditorGUIUtility.Load(shaderPath) as ComputeShader;
-            Debug.Log("Shader bulundu" + frustumComputeShader);
+           
 
         }
 
         SetupRenderers();
-        CoroutineRunner.instance.StartCoroutine(WarmUpFrustums());
+       
 
         isInitialized = true;
     }
@@ -207,14 +220,15 @@ public static class EditorPreviewer
     {
         if (!isInitialized) return;
 
-        Debug.Log("Çalýþýyor EditorPreviewer");
+       
 
         if (Vector3.Magnitude(sceneCamera.transform.position - lastCamPosition) > 5)
         {
             
             isFrustumCalculationNeeded = true;
             lastCamPosition = sceneCamera.transform.position;
-            Debug.Log("Yeniden Hesaplandý");
+            
+
         }
 
 
@@ -248,21 +262,7 @@ public static class EditorPreviewer
 
     }
 
-    private static  IEnumerator WarmUpFrustums()
-    {
-      
-        foreach (EditorRenderer renderer in renderers)
-        {
-            for (int i = 0; i < 5; i++)
-            {
-                if (!isInitialized) break;
-                CalculateFrustum();
-                renderer.UpdateFrustum(planesBuffer);
-                yield return new WaitForSecondsRealtime(0.05f);
-            }
-
-        }
-    }
+   
 
 
 }
@@ -390,7 +390,7 @@ public class EditorRenderer
         shader.Dispatch(kernelID, groupSizeX, 1, 1);
 
         if (visibleCount == 0) return;
-        Debug.Log("Rendering");
+       
         Graphics.RenderMeshIndirect(rp, mesh, argsBuffer);
 
     }

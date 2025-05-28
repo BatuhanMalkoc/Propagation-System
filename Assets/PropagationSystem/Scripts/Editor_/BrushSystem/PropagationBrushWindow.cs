@@ -567,6 +567,12 @@ namespace PropagationSystem.Editor
 
         private void OnGUI()
         {
+            if (selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count || selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
+            {
+                selectedMeshIndex_Static = 0;
+                selectedMeshIndex = 0;
+            }
+
             GUI_Label();
 
             GUI_UpdateIcon();
@@ -626,11 +632,7 @@ namespace PropagationSystem.Editor
                 Refresh();
             }
 
-            if(selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count ||selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
-            {
-                selectedMeshIndex_Static = 0;
-                selectedMeshIndex = 0;
-            }
+           
 
             if(GUILayout.Button("Start Previewing"))
             {
