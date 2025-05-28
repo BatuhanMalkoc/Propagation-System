@@ -78,9 +78,21 @@ public static class EditorPreviewer
 
         isInitialized = false;
         isPreviewing = false;
+        
+        foreach(EditorRenderer renderer in renderers)
+        {
+            renderer.DisposeAll();
+        }
+
+
+
         renderers.Clear();
         SceneData = null;
-        planesBuffer.Dispose();
+
+        if (planesBuffer != null)
+        {
+            planesBuffer.Dispose();
+        }
        
     }
 
@@ -400,6 +412,14 @@ public class EditorRenderer
         this.visibleCount = (int)visibleCount;
     }
 
+   public void DisposeAll()
+    {
+        transformBuffer?.Dispose();
+        planesBuffer?.Dispose();
+        argsBuffer?.Dispose();
+        visibleCountBuffer?.Dispose();
+        visibleIndicesBuffer?.Dispose();
+    }
     void OnDestroy()
     {
         transformBuffer?.Dispose();

@@ -160,16 +160,16 @@ namespace PropagationSystem.Editor
         {
             // TODO: Örn. gizmo çizimi, vertex color boyama, prefab spawn
              Ray[] ray;
-             CreateRandomPoints(10,point,normal,out ray);
+             CreateRandomPoints(100,point,normal,out ray);
 
-            BrushPaintData[] brushPaintData = new BrushPaintData[10];
+            BrushPaintData[] brushPaintData = new BrushPaintData[100];
 
             for (int i = 0; i < ray.Length; i++) {
                 Physics.Raycast(ray[i], out RaycastHit hit);
                 brushPaintData[i] = new BrushPaintData
                 {
                     position = hit.point,
-                    rotation = IsValidQuaternion(Quaternion.LookRotation(hit.normal)) ? Quaternion.LookRotation(hit.normal) : Quaternion.identity,
+                    rotation = IsValidQuaternion(Quaternion.LookRotation(hit.normal)) ? Quaternion.LookRotation(Vector3.Cross(Vector3.forward,hit.normal)) : Quaternion.identity,
                     scale = Vector3.one
 
                 };
@@ -197,7 +197,7 @@ namespace PropagationSystem.Editor
         {
            ray = new Ray[rayCount];
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 100; i++)
             {
                 ray[i] = new Ray(point + (normal*0.3f) + new Vector3(Random.Range(-brushSize,brushSize),0,Random.Range(-brushSize,brushSize)), -normal);
             }
