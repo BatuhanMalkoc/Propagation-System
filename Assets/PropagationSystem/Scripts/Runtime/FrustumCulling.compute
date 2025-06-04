@@ -1,4 +1,4 @@
-#pragma kernel CSFrustumCulling
+﻿#pragma kernel CSFrustumCulling
 
 cbuffer Params
 {
@@ -20,6 +20,7 @@ struct FrustumPlanes
 RWStructuredBuffer<PositionData> positionBuffer;
 AppendStructuredBuffer<uint> visibleIndices;
 StructuredBuffer<FrustumPlanes> frustumPlanesBuffer;
+RWStructuredBuffer<uint> _argsBuffer;
 
 bool IsInsideFrustum(float3 position)
 {
@@ -48,6 +49,8 @@ void CSFrustumCulling(uint3 id : SV_DispatchThreadID)
     if (inside)
     {
         visibleIndices.Append(index);
+        uint oldCount; // ★
+        InterlockedAdd(_argsBuffer[1],1, oldCount);
     }
   
 }

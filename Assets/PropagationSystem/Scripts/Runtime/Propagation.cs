@@ -36,6 +36,13 @@ namespace PropagationSystem
         private void OnDisable()
         {
             onCameraUpdate.OnCameraUpdated -= SetFlagToFrustumCulling;
+
+            for (int i = 0; i <renderersList.Count; i++)
+            {
+
+                renderersList[i].Dispose();
+                renderersList[i] = null;
+            }
         }
 
         private void OnDestroy()

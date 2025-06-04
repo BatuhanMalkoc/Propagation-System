@@ -3,112 +3,164 @@ using System.Collections.Generic;
 using PropagationSystem;
 using PropagationSystem.Editor;
 
-public class BrushRandom2D : IBrush
+namespace PropagationSystem.Editor
 {
-    private List<PixelSample> validPixels = new List<PixelSample>();
-    private Texture2D originalTexture;
-    private Vector3 lastHitPoint;
-    private Vector3 lastHitNormal;
-    private float lastBrushSize;
-
-    public BrushPaintData[] ApplyBrush(BrushDataSO brush, Vector3 hitPoint, Vector3 hitNormal, float brushSize, float density, int count, Camera camera)
+    public class BrushRandom2D : IBrush
     {
-        originalTexture = brush.maskTexture;
+        #region Fields
+        private List<PixelSample> validPixels = new List<PixelSample>();
+        private Texture2D originalTexture;
+        private Vector3 lastHitPoint;
+        private Vector3 lastHitNormal;
+        private float lastBrushSize;
+        #endregion
 
-        // Create a readable RGBA32 copy
-        Texture2D renderTexture = new Texture2D(originalTexture.width, originalTexture.height, TextureFormat.RGBA32, false, true);
-        renderTexture.SetPixels(originalTexture.GetPixels());
-        renderTexture.Apply();
-
-        validPixels.Clear();
-        Color[] pixels = renderTexture.GetPixels();
-
-        for (int y = 0; y < renderTexture.height; y++)
+        #region Public Methods
+        public BrushPaintData[] ApplyBrush(
+            BrushDataSO brush,
+            Vector3 hitPoint,
+            Vector3 hitNormal,
+            float brushSize,
+            float density,
+            int count,
+            Camera camera)
         {
-            for (int x = 0; x < renderTexture.width; x++)
+            // Initialize fields
+            originalTexture = brush.maskTexture;
+            lastHitPoint = hitPoint;
+            lastHitNormal = hitNormal.normalized;
+            lastBrushSize = brushSize;
+
+            // Process texture and sample pixels
+            Texture2D renderTexture = CreateReadableTexture(originalTexture);
+            SampleValidPixels(renderTexture);
+
+            Debug.Log("Geçerli pixel sayýsý: " + validPixels.Count);
+
+            // Generate rays based on sampled pixels and camera orientation
+            Ray[] rays = GenerateRays(camera, count);
+
+            // Perform raycasts and build BrushPaintData array
+            return BuildBrushPaintData(rays);
+        }
+        #endregion
+
+        #region Helper Methods
+        private Texture2D CreateReadableTexture(Texture2D source)
+        {
+            // Create a readable RGBA32 copy of the original texture
+            Texture2D readable = new Texture2D(
+                source.width,
+                source.height,
+                TextureFormat.RGBA32,
+                false,
+                true
+            );
+
+            readable.SetPixels(source.GetPixels());
+            readable.Apply();
+
+            return readable;
+        }
+
+        private void SampleValidPixels(Texture2D texture)
+        {
+            validPixels.Clear();
+            Color[] pixels = texture.GetPixels();
+            int width = texture.width;
+            int height = texture.height;
+
+            for (int y = 0; y < height; y++)
             {
-                Color col = pixels[y * renderTexture.width + x];
-                if (col.grayscale > 0.01f && col.a > 0.01f)
+                for (int x = 0; x < width; x++)
                 {
-                    validPixels.Add(new PixelSample
+                    Color col = pixels[y * width + x];
+                    if (col.grayscale > 0.01f && col.a > 0.01f)
                     {
-                        position = new Vector2Int(x, y),
-                        color = col
-                    });
+                        validPixels.Add(new PixelSample
+                        {
+                            position = new Vector2Int(x, y),
+                            color = col
+                        });
+                    }
                 }
             }
         }
 
-        Debug.Log("Geçerli pixel sayýsý: " + validPixels.Count);
-
-        lastHitPoint = hitPoint;
-        lastHitNormal = hitNormal.normalized;
-        lastBrushSize = brushSize;
-
-        Ray[] rays = GetRay(hitPoint, hitNormal, camera, count);
-
-        BrushPaintData[] brushPaintData = new BrushPaintData[rays.Length];
-
-        for (int i = 0; i < rays.Length; i++)
+        private Ray[] GenerateRays(Camera camera, int rayCount)
         {
-            Physics.Raycast(rays[i], out RaycastHit hitInfo);
-            brushPaintData[i] = new BrushPaintData
+            int count = Mathf.Min(rayCount, validPixels.Count);
+            List<Ray> rays = new List<Ray>(count);
+
+            // Compute plane axes based on camera-relative brush plane
+            Vector3 tangent = Vector3.Cross(lastHitNormal, camera.transform.right).normalized;
+            if (tangent == Vector3.zero)
+                tangent = camera.transform.up;
+
+            Vector3 bitangent = Vector3.Cross(lastHitNormal, tangent).normalized;
+
+            for (int i = 0; i < count; i++)
             {
-                position = hitInfo.point,
-                rotation = IsValidQuaternion(Quaternion.LookRotation(Vector3.Cross(hitInfo.normal,Vector3.right))) ? Quaternion.LookRotation(Vector3.Cross(hitInfo.normal, Vector3.right)) : Quaternion.identity,
-                scale = Vector3.one
-            };
+                int index = Random.Range(0, validPixels.Count);
+                PixelSample sample = validPixels[index];
+
+                Vector2 uv = new Vector2(
+                    (float)sample.position.x / originalTexture.width,
+                    (float)sample.position.y / originalTexture.height
+                );
+
+                // Convert UV to world position using rotated axes (flip X and Y as needed)
+                Vector3 worldPos = lastHitPoint
+                    + -(uv.x - 0.5f) * lastBrushSize * 2 * bitangent
+                    - (uv.y - 0.5f) * lastBrushSize * 2 *tangent;
+
+                Vector3 origin = worldPos + lastHitNormal * 0.1f;
+                Vector3 direction = -lastHitNormal;
+                rays.Add(new Ray(origin, direction));
+            }
+
+            return rays.ToArray();
         }
 
-        return brushPaintData;
-    }
-
-    static bool IsValidQuaternion(Quaternion q)
-    {
-        float magnitude = Mathf.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-        return magnitude > 0.0001f && !float.IsNaN(magnitude) && !float.IsInfinity(magnitude);
-    }
-
-    public Ray[] GetRay(Vector3 rayPosition, Vector3 rayDirection, Camera camera, int rayCount)
-    {
-        int count = Mathf.Min(rayCount, validPixels.Count);
-        List<Ray> rays = new List<Ray>();
-
-        // Compute plane axes based on camera-relative brush plane
-        Vector3 tangent = Vector3.Cross(lastHitNormal, camera.transform.right).normalized;
-        if (tangent == Vector3.zero) tangent = camera.transform.up;
-        Vector3 bitangent = Vector3.Cross(lastHitNormal, tangent).normalized;
-
-        for (int i = 0; i < count; i++)
+        private BrushPaintData[] BuildBrushPaintData(Ray[] rays)
         {
-            int index = Random.Range(0, validPixels.Count);
-            PixelSample sample = validPixels[index];
+            int length = rays.Length;
+            BrushPaintData[] brushDatas = new BrushPaintData[length];
 
-            Vector2 uv = new Vector2(
-                (float)sample.position.x / originalTexture.width,
-                (float)sample.position.y / originalTexture.height
-            );
+            for (int i = 0; i < length; i++)
+            {
+                Physics.Raycast(rays[i], out RaycastHit hitInfo);
 
-            // Rotate UV axes by 90 degrees around brush normal: swap tangent and bitangent
-            Vector3 worldPos = lastHitPoint
-                + -(uv.x - 0.5f) * lastBrushSize * bitangent
-                - (uv.y - 0.5f) * lastBrushSize * tangent;
+                Quaternion hitRotation = Quaternion.identity;
+                if (IsValidQuaternion(Quaternion.LookRotation(hitInfo.normal)))
+                {
+                    // Align forward to hit.normal
+                    hitRotation = Quaternion.LookRotation(Vector3.Cross(hitInfo.normal,Vector3.right));
+                }
 
-            rays.Add(new Ray(worldPos + lastHitNormal * 0.1f, -lastHitNormal));
+                brushDatas[i] = new BrushPaintData
+                {
+                    position = hitInfo.point,
+                    rotation = hitRotation,
+                    scale = Vector3.one
+                };
+            }
+
+            return brushDatas;
         }
 
-        return rays.ToArray();
+        private static bool IsValidQuaternion(Quaternion q)
+        {
+            float magnitude = Mathf.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+            return magnitude > 0.0001f && !float.IsNaN(magnitude) && !float.IsInfinity(magnitude);
+        }
+        #endregion
+
     }
 
-    // Unused overload
-    public Ray[] GetRay(Vector3 rayPosition, Vector3 rayDirection, int rayCount)
+    public struct PixelSample
     {
-        throw new System.NotImplementedException();
+        public Vector2Int position;
+        public Color color;
     }
-}
-
-public struct PixelSample
-{
-    public Vector2Int position;
-    public Color color;
 }

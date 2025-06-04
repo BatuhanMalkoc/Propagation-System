@@ -20,6 +20,7 @@ namespace PropagationSystem.Editor
         private static int selectedMeshIndex_Static;
         public static Action<int> OnBrushStroke;
 
+        private Vector2 scrollPos;
         #endregion
 
         #region Brush Variables
@@ -136,6 +137,10 @@ namespace PropagationSystem.Editor
 
         private static void OnBrushApplied(BrushPaintData[] datas)
         {
+
+            Undo.RecordObject(sceneData, "Brush Stroke");
+
+
             Debug.Log("Event çaðýrýldý data countýda þu :" + datas.Length);
 
           for(int i = 0; i < datas.Length; i++)
@@ -570,10 +575,10 @@ namespace PropagationSystem.Editor
 
         private void OnGUI()
         {
-           
+            // 2) Mevcut tüm GUI içeriðinizi aþaðýdaki iki satýr arasýna alýn:
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
 
             GUI_Label();
-
             GUI_UpdateIcon();
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -590,11 +595,13 @@ namespace PropagationSystem.Editor
             }
             EditorGUILayout.Space(2);
 
-
             if (sceneData == null)
             {
                 EditorGUILayout.HelpBox("Assign A Scene Data First", MessageType.Warning);
                 EditorGUILayout.EndVertical();
+                // 3) ScrollView'u kapatmadan önce return ediyorsunuz, bu durumda
+                //    EndScrollView() da çaðrýlmalý. Bu nedenle buraya bir EndScrollView() ekledik.
+                EditorGUILayout.EndScrollView();
                 return;
             }
             else if (sceneData.propagatedMeshDefinitions.Count == 0)
@@ -602,6 +609,8 @@ namespace PropagationSystem.Editor
                 EditorGUILayout.HelpBox("Add Atleast One Mesh To Propagate", MessageType.Warning);
                 EditorGUILayout.EndVertical();
                 GUI_CreateNewMesh();
+                // Burada da return varsa EndScrollView() unutulmamalý:
+                EditorGUILayout.EndScrollView();
                 return;
             }
 
@@ -616,9 +625,25 @@ namespace PropagationSystem.Editor
             {
                 EditorGUILayout.HelpBox("Assign A Brush Set", MessageType.Warning);
                 EditorGUILayout.EndVertical();
+                EditorGUILayout.EndScrollView();
                 return;
             }
-         
+            if (brushSet.brushes.Count == 0)
+            {
+                EditorGUILayout.HelpBox("Assign A Brush", MessageType.Warning);
+                string addBrushIconPath = AssetDatabase.GUIDToAssetPath(ADDBRUSHICONGUID);
+                Texture2D addBrushIcon = EditorGUIUtility.Load(addBrushIconPath) as Texture2D;
+
+                if (GUILayout.Button(addBrushIcon, GUILayout.Width(48), GUILayout.Height(48)))
+                {
+                    CreateNewBrushType.OpenWindow();
+                    CreateNewBrushType.SetBrushSet(brushSet);
+                }
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.EndScrollView();
+                return;
+            }
+
             GUI_BrushSettings();
 
             EditorGUILayout.EndVertical();
@@ -631,29 +656,25 @@ namespace PropagationSystem.Editor
 
             EditorGUILayout.EndVertical();
 
-
             if (brushMesh == null || brushMaterial == null)
             {
-
                 Refresh();
             }
 
-           
-
-            if(GUILayout.Button("Start Previewing"))
+            if (GUILayout.Button("Start Previewing"))
             {
                 EditorPreviewer.Setup(sceneData);
                 EditorPreviewer.SetPreviewMode(true);
-
             }
-            if(GUILayout.Button("Stop Previewing"))
+            if (GUILayout.Button("Stop Previewing"))
             {
                 EditorPreviewer.SetPreviewMode(false);
             }
 
             UpdatePropagationBrush();
 
-                  
+            // 4) Burada ScrollView'u kapatýyoruz:
+            EditorGUILayout.EndScrollView();
         }
 
         #endregion

@@ -1,10 +1,11 @@
+﻿using System;
 using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
 
 namespace PropagationSystem
 { 
-public class Renderer
+public class Renderer : IDisposable
 {
         TransformTransferData[] trs;
 
@@ -14,6 +15,7 @@ public class Renderer
 
 
         ComputeBuffer transformBuffer;
+        ComputeBuffer positionBuffer;
         GraphicsBuffer argsBuffer;
 
         ComputeBuffer visibleIndicesBuffer;
@@ -33,9 +35,12 @@ public class Renderer
 
         const string kernelName = "CSFrustumCulling";
 
+        private bool isDisposed = false;
+
+        bool buffersInitialized;
 
         #region Constructor Without Frustum Culling
- 
+
         public Renderer(Mesh mesh,Material material,ComputeShader shader, TransformTransferData[] trs)
         {
             this.mesh = mesh;
@@ -64,7 +69,8 @@ public class Renderer
         {
             //shader = Instantiate(shader);
             //material = Instantiate(material);
-
+            if (buffersInitialized)
+                Dispose();
 
             kernelID = shader.FindKernel(kernelName);
             instanceCount = trs.Length;
@@ -82,7 +88,7 @@ public class Renderer
                 positions[i] = trs[i].trsMatrices.GetColumn(3);
             }
 
-            ComputeBuffer positionBuffer = new ComputeBuffer(positions.Length, sizeof(float) * 3);
+            positionBuffer = new ComputeBuffer(positions.Length, sizeof(float) * 3);
             positionBuffer.SetData(positions);
             //Planes Buffer Zaten Var
 
@@ -129,7 +135,7 @@ public class Renderer
             argsBuffer.SetData(args);
             material.SetBuffer("visibleIndices", visibleIndicesBuffer);
 
-            visibleIndicesBuffer.SetCounterValue(0); // Her karede s�f�rla
+            visibleIndicesBuffer.SetCounterValue(0); // Her karede sıfırla
 
             shader.Dispatch(kernelID, groupSizeX, 1, 1);
 
@@ -158,6 +164,7 @@ public class Renderer
 
        void OnDestroy()
         {
+            positionBuffer?.Dispose();
             transformBuffer?.Dispose();
             planesBuffer?.Dispose();
             argsBuffer?.Dispose();
@@ -165,5 +172,34 @@ public class Renderer
             visibleIndicesBuffer?.Dispose();
             
         }
+
+        public void Dispose()
+        {
+            if (isDisposed) return;
+            isDisposed = true;
+
+            // Tüm ComputeBuffer ve GraphicsBuffer’ları kapat
+            transformBuffer?.Dispose();
+            transformBuffer = null;
+
+            positionBuffer?.Dispose();
+            positionBuffer = null;
+
+            visibleIndicesBuffer?.Dispose();
+            visibleIndicesBuffer = null;
+
+            visibleCountBuffer?.Dispose();
+            visibleCountBuffer = null;
+
+            // planesBuffer’ı burada dispose etmek, eğer başka yerde paylaşıyorsan sorun olabilir.
+            // Ancak eğer her Renderer kendi planesBuffer’ını ayırıyorsa dispose etmelisin:
+            planesBuffer?.Dispose();
+            planesBuffer = null;
+
+            argsBuffer?.Dispose();
+            argsBuffer = null;
+
+            buffersInitialized = false;
+        }
     }
-}
+    }

@@ -28,6 +28,8 @@ public static class EditorPreviewer
 
     static Vector3 lastCamPosition;
 
+    static Quaternion lastCamRot;
+
     static float frustumSmoothDistance = 4;
 
    static bool isInPlayMode = false;
@@ -58,10 +60,17 @@ public static class EditorPreviewer
         isPreviewing = previewMode;
         if (!isPreviewing)
         {
-            DisposeEverthing();
+            Teardown();
+           
         }
 
     
+    }
+
+    public static void Teardown()
+    {
+        PropagationBrushWindow.OnBrushStroke -= OnSceneDataChanged;
+        DisposeEverthing();
     }
     public static void OnSceneDataChanged(int index)
     {
@@ -85,7 +94,7 @@ public static class EditorPreviewer
         {
             DisposeRenderers();
             renderers.Clear();
-            Initialize();
+            SetupRenderers(); // ✱
         }
 
         // 3. Güncellenen TRS verisi ilgili renderer'a set ediliyor
@@ -174,8 +183,11 @@ public static class EditorPreviewer
 
         }
 
-        SetupRenderers();
-       
+      
+
+        DisposeRenderers(); // ✱
+        renderers.Clear();  // ✱
+        SetupRenderers();   // ✱
 
         isInitialized = true;
     }
@@ -238,9 +250,12 @@ public static class EditorPreviewer
     {
         if (!isInitialized) return;
 
-       
+        if (Event.current.type != EventType.Repaint)
+            return;
 
-        if (Vector3.Magnitude(sceneCamera.transform.position - lastCamPosition) > 5)
+     
+
+        if (Vector3.Magnitude(sceneCamera.transform.position - lastCamPosition) > 5 || Quaternion.Angle(sceneCamera.transform.rotation,lastCamRot) > 15 )
         {
             
             isFrustumCalculationNeeded = true;
@@ -256,7 +271,7 @@ public static class EditorPreviewer
             if (isFrustumCalculationNeeded)
             {
                 CalculateFrustum();
-                Debug.Log("Tekrar Hesaplandı");
+           
                 
 
             }
@@ -298,166 +313,6 @@ public static class EditorPreviewer
 
 #endif
 
-[ExecuteInEditMode]
-public class EditorRenderer
-{
-    TransformTransferData[] trs;
 
-    Material material;
-    ComputeShader shader;
-    Mesh mesh;
-
-
-    ComputeBuffer transformBuffer;
-    GraphicsBuffer argsBuffer;
-
-    ComputeBuffer visibleIndicesBuffer;
-    ComputeBuffer visibleCountBuffer;
-
-    ComputeBuffer planesBuffer;
-
-    RenderParams rp;
-
-    bool useFrustumCulling = true;
-    float frustumSmoothDistance;
-
-    int kernelID;
-    int groupSizeX;
-    int visibleCount;
-    int instanceCount;
-
-    const string kernelName = "CSFrustumCulling";
-
-
-   
-    #region Constructor With Frustum Culling
-    public EditorRenderer(Mesh mesh, Material material, ComputeShader shader, TransformTransferData[] trs, ComputeBuffer planesBuffer)
-    {
-        this.mesh = mesh;
-        this.material = material;
-        this.shader = shader;
-        this.trs = trs;
-        this.planesBuffer = planesBuffer;
-
-        useFrustumCulling = true;
-        Initialize();
-    }
-    #endregion
-
-    void Initialize()
-    {
-      
-        kernelID = shader.FindKernel(kernelName);
-        instanceCount = trs.Length;
-
-        shader.GetKernelThreadGroupSizes(kernelID, out uint tx, out _, out _);
-        groupSizeX = Mathf.CeilToInt(instanceCount / (float)tx);
-
-        transformBuffer = new ComputeBuffer(trs.Length, sizeof(float) * 16);
-        transformBuffer.SetData(trs);
-
-        Vector3[] positions = new Vector3[trs.Length];
-
-        for (int i = 0; i < trs.Length; i++)
-        {
-            positions[i] = trs[i].trsMatrices.GetColumn(3);
-        }
-
-        ComputeBuffer positionBuffer = new ComputeBuffer(positions.Length, sizeof(float) * 3);
-        positionBuffer.SetData(positions);
-        //Planes Buffer Zaten Var
-
-        visibleIndicesBuffer = new ComputeBuffer(instanceCount, sizeof(uint), ComputeBufferType.Append);
-        visibleIndicesBuffer.SetCounterValue(0); // Temizle
-
-        visibleCountBuffer = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Raw);
-
-        shader.SetBuffer(kernelID, "visibleIndices", visibleIndicesBuffer);
-        shader.SetBuffer(kernelID, "positionBuffer", positionBuffer);
-        shader.SetBuffer(kernelID, "frustumPlanesBuffer", planesBuffer);
-
-        shader.SetInt("_InstanceCount", instanceCount);
-
-        material.SetBuffer("transformBuffer", transformBuffer);
-
-
-        argsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawIndexedArgs.size);
-        GraphicsBuffer.IndirectDrawIndexedArgs[] args = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
-        args[0].indexCountPerInstance = mesh.GetIndexCount(0);
-        args[0].instanceCount = (uint)instanceCount;
-        argsBuffer.SetData(args);
-
-        rp = new RenderParams(material)
-        {
-            worldBounds = new Bounds(Vector3.zero, Vector3.one * 10000f)
-        };
-
-
-
-    }
-
-    public void Update(TransformTransferData[] updatedTRS)
-    {
-        trs = updatedTRS;
-        Initialize();
-    }
-
-
-
-
-
-    public void Render()
-    {
-        GraphicsBuffer.IndirectDrawIndexedArgs[] args = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
-        args[0].indexCountPerInstance = mesh.GetIndexCount(0);
-        args[0].instanceCount = (uint)visibleCount;
-        argsBuffer.SetData(args);
-        material.SetBuffer("visibleIndices", visibleIndicesBuffer);
-
-        visibleIndicesBuffer.SetCounterValue(0); // Her karede sıfırla
-
-        shader.Dispatch(kernelID, groupSizeX, 1, 1);
-
-        if (visibleCount == 0) return;
-       
-        Graphics.RenderMeshIndirect(rp, mesh, argsBuffer);
-
-    }
-
-    public void UpdateFrustum(ComputeBuffer newFrustumPlanesBuffer)
-    {
-        planesBuffer = newFrustumPlanesBuffer;
-
-        shader.SetBuffer(kernelID, "frustrumPlanesBuffer", planesBuffer);
-
-        ComputeBuffer.CopyCount(visibleIndicesBuffer, visibleCountBuffer, 0);
-
-        uint[] countArray = { 0 };
-
-        visibleCountBuffer.GetData(countArray);
-
-        uint visibleCount = countArray[0];
-
-        this.visibleCount = (int)visibleCount;
-    }
-
-   public void DisposeAll()
-    {
-        transformBuffer?.Dispose();
-        planesBuffer?.Dispose();
-        argsBuffer?.Dispose();
-        visibleCountBuffer?.Dispose();
-        visibleIndicesBuffer?.Dispose();
-    }
-    void OnDestroy()
-    {
-        transformBuffer?.Dispose();
-        planesBuffer?.Dispose();
-        argsBuffer?.Dispose();
-        visibleCountBuffer?.Dispose();
-        visibleIndicesBuffer?.Dispose();
-
-    }
-}
 
 

@@ -2,6 +2,7 @@
 #ifndef VOXEL_MESH_INFO
 #define VOXEL_MESH_INFO
 
+#pragma multi_compile_instancing
 
 struct TransformData {
     float4x4 transform;
