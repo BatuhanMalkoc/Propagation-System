@@ -1408,6 +1408,10 @@ PrefabInstance:
       value: Ground
       objectReference: {fileID: 0}
     - target: {fileID: 6392458345041978556, guid: 21990461a50c2cf49a2b3da67d24625c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6392458345041978556, guid: 21990461a50c2cf49a2b3da67d24625c, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 4294967295
       objectReference: {fileID: 0}
@@ -3923,7 +3927,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.01
-  far clip plane: 1000
+  far clip plane: 400
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -3950,8 +3954,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 714868283}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -53.9, y: 39.5, z: 452.7}
+  m_LocalRotation: {x: 0.4671063, y: 0.14932746, z: -0.080390714, w: 0.86778474}
+  m_LocalPosition: {x: -74.43738, y: 33.52069, z: 731.82196}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4018,8 +4022,8 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
+  m_RenderPostProcessing: 1
+  m_Antialiasing: 3
   m_AntialiasingQuality: 2
   m_StopNaN: 0
   m_Dithering: 0
@@ -4034,7 +4038,7 @@ MonoBehaviour:
   m_Version: 2
   m_TaaSettings:
     m_Quality: 3
-    m_FrameInfluence: 0.1
+    m_FrameInfluence: 0.100000024
     m_JitterScale: 1
     m_MipBias: 0
     m_VarianceClampScale: 0.9
@@ -10909,7 +10913,7 @@ Transform:
   m_GameObject: {fileID: 1890441852}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 75.043, y: 23.139812, z: 753.18}
+  m_LocalPosition: {x: 74.7, y: 23.139812, z: 753.18}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10927,7 +10931,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5de63ca81a14fd94b9b339120a009eae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SceneData: {fileID: 11400000, guid: 9483bc9862a22a443925ba8f442e67b8, type: 2}
+  SceneData: {fileID: 11400000, guid: 3768248b29186574eaf8a190ec6bf484, type: 2}
   currentCamera: {fileID: 714868289}
   onCameraUpdate: {fileID: 714868292}
   frustumCullingShader: {fileID: 7200000, guid: e82eedd14c716fc4ea275d5898382edc, type: 3}

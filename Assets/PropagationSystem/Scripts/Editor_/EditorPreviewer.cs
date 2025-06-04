@@ -1,4 +1,4 @@
-using PropagationSystem;
+﻿using PropagationSystem;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor.Analytics;
@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 using System.Collections;
 using Unity.VisualScripting;
 using PropagationSystem.Editor;
+
 #if UNITY_EDITOR
 
 [ExecuteInEditMode]
@@ -37,6 +38,9 @@ public static class EditorPreviewer
     static bool isInitialized = false;
 
     static bool isFrustumCalculationNeeded = false;
+
+    static bool isFrustumWarm = false;
+
     public static void Setup(SceneData sceneData)
     {
         if (isInPlayMode) return;
@@ -61,17 +65,22 @@ public static class EditorPreviewer
     }
     public static void OnSceneDataChanged(int index)
     {
+        if (!isInitialized) return;
 
-        if(!isInitialized) return;
+        // 1. Yeni eklenen objeler için TransformTransferData dizisi oluşturuluyor
         TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].trsMatrices.Count];
-
         for (int j = 0; j < SceneData.propagatedObjectDatas[index].trsMatrices.Count; j++)
         {
             TransformData data = SceneData.propagatedObjectDatas[index];
-            Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
-
+            Matrix4x4 transferMatrix = Matrix4x4.TRS(
+                data.trsMatrices[j].position,
+                data.trsMatrices[j].rotation,
+                data.trsMatrices[j].scale
+            );
             trs[j].trsMatrices = transferMatrix;
         }
+
+        // 2. Eğer index ≥ renderers.Count ise renderers silinip yeniden initialize ediliyor
         if (renderers.Count <= index)
         {
             DisposeRenderers();
@@ -79,8 +88,17 @@ public static class EditorPreviewer
             Initialize();
         }
 
+        // 3. Güncellenen TRS verisi ilgili renderer'a set ediliyor
+
+        isFrustumWarm = true;
+
         renderers[index].Update(trs);
+
+
+        // 4. SceneView'i yeniden boyamak için
+     
     }
+
     static void DisposeEverthing() {
 
         isInitialized = false;
@@ -194,7 +212,7 @@ public static class EditorPreviewer
         return renderer;
     }
 
-    static void CalculateFrustum()
+   public static void CalculateFrustum()
     {
         if (!isInitialized) return;
         if (sceneCamera == null)
@@ -238,9 +256,20 @@ public static class EditorPreviewer
             if (isFrustumCalculationNeeded)
             {
                 CalculateFrustum();
+                Debug.Log("Tekrar Hesaplandı");
                 
-            }
 
+            }
+            if (isFrustumWarm)
+            {
+                for(int i =0; i < 10; i++)
+                {
+                    CalculateFrustum();
+                }
+                isFrustumWarm = false;
+
+            }
+         
 
             foreach (EditorRenderer renderer in renderers)
             {
@@ -251,14 +280,14 @@ public static class EditorPreviewer
                 }
 
                 renderer.Render();
-                sceneView.Repaint();
+            
                
 
             }
             isFrustumCalculationNeeded = false;
         }
 
-       
+     
 
     }
 
@@ -385,7 +414,7 @@ public class EditorRenderer
         argsBuffer.SetData(args);
         material.SetBuffer("visibleIndices", visibleIndicesBuffer);
 
-        visibleIndicesBuffer.SetCounterValue(0); // Her karede s�f�rla
+        visibleIndicesBuffer.SetCounterValue(0); // Her karede sıfırla
 
         shader.Dispatch(kernelID, groupSizeX, 1, 1);
 

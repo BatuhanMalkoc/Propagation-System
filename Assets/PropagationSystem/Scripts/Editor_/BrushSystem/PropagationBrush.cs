@@ -19,7 +19,7 @@ namespace PropagationSystem.Editor
         private static Mesh brushMesh;
         private static Material brushMaterial;
         public static Action<BrushPaintData[]> OnBrushApplied;
-
+        public static PropagationBrushWindow.PropagationMode propagationMode = PropagationBrushWindow.PropagationMode.Random;
         public static PropagationBrushWindow.BrushMode brushMode;
         #endregion
 
@@ -85,8 +85,9 @@ namespace PropagationSystem.Editor
             if (isActive)
             {
                 UpdateHitPoint();
-                DrawBrushPlane();
+                DrawBrushPlane(sceneView.camera);
                 sceneView.Repaint();
+                
                 // Sürekli raycast at ve çemberi çiz
 
 
@@ -107,7 +108,7 @@ namespace PropagationSystem.Editor
 
                 if (isPressing)
                 {
-                    ApplyBrushAtPoint(lastHitPoint, lastHitNormal);
+                    ApplyBrushAtPoint(lastHitPoint, lastHitNormal,sceneView.camera);
                 }
             }
         }
@@ -122,7 +123,7 @@ namespace PropagationSystem.Editor
           
               if (spawnPosition != null)
              {
-                DrawBrushPlane();
+              
                 lastHitNormal = hit.normal;
                 lastHitPoint = hit.point;
              }
@@ -131,7 +132,7 @@ namespace PropagationSystem.Editor
         /// <summary>
         /// Son hizalanan noktada Handles ile çember çizer.
         /// </summary>
-        private static void DrawBrushPlane()
+        private static void DrawBrushPlane(Camera camera)
         {
            
             brushMaterial.SetPass(0);
@@ -148,37 +149,34 @@ namespace PropagationSystem.Editor
 
             }
 
-                Graphics.DrawMeshNow(brushMesh, lastHitPoint + lastHitNormal * 0.2f, Quaternion.identity);
-            
-           
+                Graphics.DrawMeshNow(brushMesh, lastHitPoint + lastHitNormal * 0.2f,Quaternion.LookRotation(Vector3.Cross(lastHitNormal,camera.transform.right)));
+               
         }
 
         /// <summary>
         /// Samplelanan değerler doğrultusunda sahne üzerinde efekt uygular.
         /// </summary>
-        public static void ApplyBrushAtPoint(Vector3 point, Vector3 normal)
+        public static void ApplyBrushAtPoint(Vector3 point, Vector3 normal,Camera camera)
         {
             // TODO: Örn. gizmo çizimi, vertex color boyama, prefab spawn
-             Ray[] ray;
-             CreateRandomPoints(100,point,normal,out ray);
+         
 
             BrushPaintData[] brushPaintData = new BrushPaintData[100];
 
-            for (int i = 0; i < ray.Length; i++) {
-                Physics.Raycast(ray[i], out RaycastHit hit);
-                brushPaintData[i] = new BrushPaintData
-                {
-                    position = hit.point,
-                    rotation = IsValidQuaternion(Quaternion.LookRotation(hit.normal)) ? Quaternion.LookRotation(Vector3.Cross(Vector3.forward,hit.normal)) : Quaternion.identity,
-                    scale = Vector3.one
+          
 
-                };
+
+            switch (propagationMode)
+            {
+                case PropagationBrushWindow.PropagationMode.Random:
+                    // Random 2D brush uygulaması
+                    IBrush brush = new BrushRandom2D();
+                    brushPaintData = brush.ApplyBrush(activeBrush, point, normal, brushSize, density,250,camera);
+                  
+                    break;
+
+
             }
-
-            Debug.Log("Brush Applyied" + brushSize);
-
-
-            
 
 
 

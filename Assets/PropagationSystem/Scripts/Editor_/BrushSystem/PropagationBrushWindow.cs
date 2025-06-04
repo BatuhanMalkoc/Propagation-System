@@ -156,8 +156,10 @@ namespace PropagationSystem.Editor
                 Debug.Log("Eklendi" + selectedMeshIndex_Static);
             }
 
+        
           EditorUtility.SetDirty(sceneData);
             OnBrushStroke?.Invoke(selectedMeshIndex_Static);
+            EditorPreviewer.CalculateFrustum();
 
         }
 
@@ -503,6 +505,7 @@ namespace PropagationSystem.Editor
 
             if (GUILayout.Button(addMeshIcon,GUILayout.Width(48),GUILayout.Height(48)))
             {
+                EditorPreviewer.SetPreviewMode(false);
                 CreateNewMeshType.OpenWindow();
             }
         }
@@ -567,11 +570,7 @@ namespace PropagationSystem.Editor
 
         private void OnGUI()
         {
-            if (selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count || selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
-            {
-                selectedMeshIndex_Static = 0;
-                selectedMeshIndex = 0;
-            }
+           
 
             GUI_Label();
 
@@ -581,7 +580,14 @@ namespace PropagationSystem.Editor
 
             GUI_SceneData();
 
-          
+            if (sceneData != null)
+            {
+                if (selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count || selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
+                {
+                    selectedMeshIndex_Static = 0;
+                    selectedMeshIndex = 0;
+                }
+            }
             EditorGUILayout.Space(2);
 
 

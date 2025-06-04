@@ -15,3 +15,5 @@ MonoBehaviour:
   brushes:
   - {fileID: 11400000, guid: 4473da0caf7b62f45a8010dc298e8f91, type: 2}
   - {fileID: 11400000, guid: 6a5f1b4a229fe044089822b0302824e2, type: 2}
+  - {fileID: 11400000, guid: abed1dd5be55c7244917448b251b0bf8, type: 2}
+  - {fileID: 11400000, guid: 9f3d7563e59400f40bec666c9ad08e9a, type: 2}
