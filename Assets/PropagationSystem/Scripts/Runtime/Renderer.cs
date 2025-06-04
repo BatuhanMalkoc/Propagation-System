@@ -104,13 +104,21 @@ public class Renderer : IDisposable
             shader.SetInt("_InstanceCount", instanceCount);
 
             material.SetBuffer("transformBuffer", transformBuffer);
+            material.SetBuffer("visibleIndices", visibleIndicesBuffer);
 
+            argsBuffer = new GraphicsBuffer(
+                GraphicsBuffer.Target.IndirectArguments,
+                1,
+                GraphicsBuffer.IndirectDrawIndexedArgs.size);
+        var args = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
+        args[0].indexCountPerInstance = mesh.GetIndexCount(0);
+        args[0].instanceCount = 0;   // ★ reset before dispatch
+        args[0].startIndex = 0;
+        args[0].baseVertexIndex = 0;
+        args[0].startInstance= 0;
+        argsBuffer.SetData(args);
 
-            argsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments,1,GraphicsBuffer.IndirectDrawIndexedArgs.size);
-            GraphicsBuffer.IndirectDrawIndexedArgs[] args = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
-            args[0].indexCountPerInstance = mesh.GetIndexCount(0);
-            args[0].instanceCount = (uint)instanceCount;
-            argsBuffer.SetData(args);
+        shader.SetBuffer(kernelID, "_argsBuffer", argsBuffer); // ★ bind argsBuffer
 
             rp = new RenderParams(material)
             {
@@ -129,17 +137,21 @@ public class Renderer : IDisposable
 
         public void Render()
         {
-            GraphicsBuffer.IndirectDrawIndexedArgs[] args = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
-            args[0].indexCountPerInstance = mesh.GetIndexCount(0);
-            args[0].instanceCount = (uint)visibleCount;
-            argsBuffer.SetData(args);
-            material.SetBuffer("visibleIndices", visibleIndicesBuffer);
+            var resetArgs = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
+            resetArgs[0].indexCountPerInstance = mesh.GetIndexCount(0);
+            resetArgs[0].instanceCount = 0;
+            resetArgs[0].startIndex = 0;
+            resetArgs[0].baseVertexIndex = 0;
+            resetArgs[0].startInstance = 0;
+            argsBuffer.SetData(resetArgs);
 
             visibleIndicesBuffer.SetCounterValue(0); // Her karede sıfırla
 
             shader.Dispatch(kernelID, groupSizeX, 1, 1);
 
-            if (visibleCount == 0) return;
+            // ★ Debug: argsBuffer’dan CPU’ya geri oku ve instanceCount’ı logla
+
+
 
             Graphics.RenderMeshIndirect(rp, mesh, argsBuffer);
 
@@ -151,15 +163,7 @@ public class Renderer : IDisposable
 
             shader.SetBuffer(kernelID, "frustrumPlanesBuffer", planesBuffer);
 
-            ComputeBuffer.CopyCount(visibleIndicesBuffer, visibleCountBuffer, 0);
-
-            uint[] countArray = { 0 };
-
-            visibleCountBuffer.GetData(countArray);
-
-            uint visibleCount = countArray[0];
-
-            this.visibleCount = (int)visibleCount;
+           
         }
 
        void OnDestroy()

@@ -84,6 +84,8 @@ namespace PropagationSystem.Editor
 
             if (isActive)
             {
+                
+
                 UpdateHitPoint();
                 DrawBrushPlane(sceneView.camera);
                 sceneView.Repaint();
