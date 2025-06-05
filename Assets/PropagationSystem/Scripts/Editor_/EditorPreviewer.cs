@@ -78,6 +78,9 @@ public static class EditorPreviewer
 
         // 1. Yeni eklenen objeler için TransformTransferData dizisi oluşturuluyor
         TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].trsMatrices.Count];
+
+       
+
         for (int j = 0; j < SceneData.propagatedObjectDatas[index].trsMatrices.Count; j++)
         {
             TransformData data = SceneData.propagatedObjectDatas[index];
@@ -88,17 +91,18 @@ public static class EditorPreviewer
             );
             trs[j].trsMatrices = transferMatrix;
         }
-
+    
         // 2. Eğer index ≥ renderers.Count ise renderers silinip yeniden initialize ediliyor
         if (renderers.Count <= index)
         {
             DisposeRenderers();
             renderers.Clear();
+            if (trs.Length <= 0) return;
             SetupRenderers(); // ✱
         }
 
         // 3. Güncellenen TRS verisi ilgili renderer'a set ediliyor
-
+        if (trs.Length <= 0) return;
         isFrustumWarm = true;
 
         renderers[index].Update(trs);
@@ -255,7 +259,7 @@ public static class EditorPreviewer
 
      
 
-        if (Vector3.Magnitude(sceneCamera.transform.position - lastCamPosition) > 5 || Quaternion.Angle(sceneCamera.transform.rotation,lastCamRot) > 15 )
+        if (Vector3.SqrMagnitude(sceneCamera.transform.position - lastCamPosition) > 25 || Quaternion.Angle(sceneCamera.transform.rotation,lastCamRot) > 15 )
         {
             
             isFrustumCalculationNeeded = true;

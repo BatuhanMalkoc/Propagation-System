@@ -3,6 +3,7 @@ using PropagationSystem;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using System.Collections;
+using UnityEditor;
 
 namespace PropagationSystem
 {
@@ -16,7 +17,7 @@ namespace PropagationSystem
 
         ComputeBuffer planesBuffer;
 
-        [SerializeField] ComputeShader frustumCullingShader;
+       ComputeShader frustumCullingShader;
 
         [SerializeField] private float frustumSmoothDistance = 0.1f; // Frustum culling için yumuşatma
 
@@ -25,6 +26,8 @@ namespace PropagationSystem
         Plane[] frustumPlanes = new Plane[6];
 
         List<Renderer> renderersList = new List<Renderer>();
+
+        private const string FRUSTUMCOMPUTESHADERGUID = "e82eedd14c716fc4ea275d5898382edc"; // Replace with your actual GUID
 
         bool isFrustumCalculationNeeded = false;
 
@@ -57,6 +60,10 @@ namespace PropagationSystem
         }
         private void Awake()
         {
+            frustumCullingShader = Resources.Load<ComputeShader>("FrustumCulling");
+
+
+
             Initialize();
         }
 

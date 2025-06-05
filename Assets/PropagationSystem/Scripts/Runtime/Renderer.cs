@@ -19,7 +19,6 @@ public class Renderer : IDisposable
         GraphicsBuffer argsBuffer;
 
         ComputeBuffer visibleIndicesBuffer;
-        ComputeBuffer visibleCountBuffer;
 
         ComputeBuffer planesBuffer;
 
@@ -95,7 +94,7 @@ public class Renderer : IDisposable
             visibleIndicesBuffer = new ComputeBuffer(instanceCount, sizeof(uint), ComputeBufferType.Append);
             visibleIndicesBuffer.SetCounterValue(0); // Temizle
 
-            visibleCountBuffer = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Raw);
+         
 
             shader.SetBuffer(kernelID, "visibleIndices", visibleIndicesBuffer);
             shader.SetBuffer(kernelID, "positionBuffer", positionBuffer);
@@ -126,7 +125,7 @@ public class Renderer : IDisposable
             };
 
 
-            
+            buffersInitialized = true;
         }
 
 
@@ -166,16 +165,7 @@ public class Renderer : IDisposable
            
         }
 
-       void OnDestroy()
-        {
-            positionBuffer?.Dispose();
-            transformBuffer?.Dispose();
-            planesBuffer?.Dispose();
-            argsBuffer?.Dispose();
-            visibleCountBuffer?.Dispose();
-            visibleIndicesBuffer?.Dispose();
-            
-        }
+   
 
         public void Dispose()
         {
@@ -192,8 +182,7 @@ public class Renderer : IDisposable
             visibleIndicesBuffer?.Dispose();
             visibleIndicesBuffer = null;
 
-            visibleCountBuffer?.Dispose();
-            visibleCountBuffer = null;
+         
 
             // planesBuffer’ı burada dispose etmek, eğer başka yerde paylaşıyorsan sorun olabilir.
             // Ancak eğer her Renderer kendi planesBuffer’ını ayırıyorsa dispose etmelisin:

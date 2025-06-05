@@ -99,7 +99,7 @@ namespace PropagationSystem.Editor
             window.minSize = new Vector2(409, 1004);
         }
 
-
+       
 
         public static void Refresh()
         {
@@ -135,41 +135,55 @@ namespace PropagationSystem.Editor
         }
         #endregion
 
-        private static void OnBrushApplied(BrushPaintData[] datas)
+        private static void OnBrushApplied(BrushPaintData[] datas,bool isErase = false)
         {
 
             Undo.RecordObject(sceneData, "Brush Stroke");
 
 
-            Debug.Log("Event çaðýrýldý data countýda þu :" + datas.Length);
+           
 
-          for(int i = 0; i < datas.Length; i++)
+            if (!isErase)
             {
-               
-
-
-                SavedPositions savedPositions = new SavedPositions();
-                savedPositions.position = datas[i].position;
-                savedPositions.rotation = datas[i].rotation;
-                savedPositions.scale = datas[i].scale;
+                Debug.Log("Event çaðýrýldý data countýda þu :" + datas.Length);
+                for (int i = 0; i < datas.Length; i++)
+                {
 
 
 
+                    SavedPositions savedPositions = new SavedPositions();
+                    savedPositions.position = datas[i].position;
+                    savedPositions.rotation = datas[i].rotation;
+                    savedPositions.scale = datas[i].scale;
 
-                sceneData.propagatedObjectDatas[selectedMeshIndex_Static].trsMatrices.Add(savedPositions);
 
-                Debug.Log("Eklendi" + selectedMeshIndex_Static);
+
+
+                    sceneData.propagatedObjectDatas[selectedMeshIndex_Static].trsMatrices.Add(savedPositions);
+
+                    Debug.Log("Eklendi" + selectedMeshIndex_Static);
+                }
+
+
+                EditorUtility.SetDirty(sceneData);
+                OnBrushStroke?.Invoke(selectedMeshIndex_Static);
+                EditorPreviewer.CalculateFrustum();
             }
-
-        
-          EditorUtility.SetDirty(sceneData);
-            OnBrushStroke?.Invoke(selectedMeshIndex_Static);
-            EditorPreviewer.CalculateFrustum();
-
+            else
+            {
+                EditorUtility.SetDirty(sceneData);
+                OnBrushStroke?.Invoke(selectedMeshIndex_Static);
+                EditorPreviewer.CalculateFrustum();
+            }
         }
 
 
-        
+        public static int GetSelectedMeshIndex()
+        {
+            return selectedMeshIndex_Static;
+        }
+
+
 
         #region GUI Functions
         void GUI_Label()

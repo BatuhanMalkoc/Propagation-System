@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using Unity.VisualScripting;
 using UnityEditor;
 
@@ -18,7 +19,7 @@ namespace PropagationSystem.Editor
         private static int count;
         private static Mesh brushMesh;
         private static Material brushMaterial;
-        public static Action<BrushPaintData[]> OnBrushApplied;
+        public static Action<BrushPaintData[],bool> OnBrushApplied;
         public static PropagationBrushWindow.PropagationMode propagationMode = PropagationBrushWindow.PropagationMode.Random;
         public static PropagationBrushWindow.BrushMode brushMode;
         #endregion
@@ -101,16 +102,12 @@ namespace PropagationSystem.Editor
                    
                     e.Use();
                 }
-                if (e.type == EventType.MouseUp && e.button == 0 && e.control)
-                {
-                    isPressing = false;
-                    
-                    e.Use();
-                }
+               
 
                 if (isPressing)
                 {
                     ApplyBrushAtPoint(lastHitPoint, lastHitNormal,sceneView.camera);
+                    isPressing = false;
                 }
             }
         }
@@ -143,11 +140,11 @@ namespace PropagationSystem.Editor
 
             if (brushMode == PropagationBrushWindow.BrushMode.Erase)
             {
-                brushMaterial.SetColor("_Tint", Color.red);
+                brushMaterial.SetColor("_Tint", UnityEngine.Color.red);
             }
             else
             {
-                brushMaterial.SetColor("_Tint", Color.white);
+                brushMaterial.SetColor("_Tint", UnityEngine.Color.white);
 
             }
 
@@ -163,9 +160,21 @@ namespace PropagationSystem.Editor
             // TODO: Örn. gizmo çizimi, vertex color boyama, prefab spawn
          
 
+            if(brushMode == PropagationBrushWindow.BrushMode.Erase)
+            {
+               OnEraseBrush();
+            }
+            else
+            {
+             OnPaintBrush(point,normal,camera);
+            }
+        }
+
+        private static void OnPaintBrush(Vector3 point, Vector3 normal, Camera camera)
+        {
             BrushPaintData[] brushPaintData = new BrushPaintData[100];
 
-          
+
 
 
             switch (propagationMode)
@@ -173,8 +182,8 @@ namespace PropagationSystem.Editor
                 case PropagationBrushWindow.PropagationMode.Random:
                     // Random 2D brush uygulaması
                     IBrush brush = new BrushRandom2D();
-                    brushPaintData = brush.ApplyBrush(activeBrush, point, normal, brushSize, density,250,camera);
-                  
+                    brushPaintData = brush.ApplyBrush(activeBrush, point, normal, brushSize, density, 250, camera);
+
                     break;
 
 
@@ -184,25 +193,29 @@ namespace PropagationSystem.Editor
 
 
 
-            OnBrushApplied?.Invoke(brushPaintData);
+            OnBrushApplied?.Invoke(brushPaintData,false);
+        }
+        private static void OnEraseBrush()
+        {
+            Undo.RecordObject(PropagationBrushWindow.GetCurrentSceneData(), "Erase Brush");
+
+            SceneData sceneData = PropagationBrushWindow.GetCurrentSceneData();
+            int meshIndex = PropagationBrushWindow.GetSelectedMeshIndex();
+            if (sceneData == null) return;
+            if (meshIndex < 0 || meshIndex >= sceneData.propagatedObjectDatas.Count) return;
+
+            BrushErase2D.EraseInCircle(sceneData, meshIndex, lastHitPoint, brushSize);
+            SceneView.RepaintAll();
+            OnBrushApplied?.Invoke(null,true);
 
         }
-       static bool IsValidQuaternion(Quaternion q)
+        static bool IsValidQuaternion(Quaternion q)
         {
             float magnitude = Mathf.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
             return magnitude > 0.0001f && !float.IsNaN(magnitude) && !float.IsInfinity(magnitude);
         }
 
-        public static void CreateRandomPoints(int rayCount,Vector3 point , Vector3 normal, out Ray[] ray)
-        {
-           ray = new Ray[rayCount];
-
-            for (int i = 0; i < 100; i++)
-            {
-                ray[i] = new Ray(point + (normal*0.3f) + new Vector3(Random.Range(-brushSize,brushSize),0,Random.Range(-brushSize,brushSize)), -normal);
-            }
-
-        }
+  
 
 
         /// <summary>

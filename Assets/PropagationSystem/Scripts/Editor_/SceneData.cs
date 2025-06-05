@@ -22,9 +22,11 @@ namespace PropagationSystem
         /// <summary>Index takibi için kullanýlan liste</summary>
         private List<int> indexs = new List<int>();
 
-
+      
         private void OnValidate()
         {
+            
+
             int newCount = propagatedMeshDefinitions.Count;
 
             // Eðer mesh definition sayýsý deðiþmemiþse, hiçbir þey yapma

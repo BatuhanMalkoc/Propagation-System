@@ -3,7 +3,11 @@ guid: 5de63ca81a14fd94b9b339120a009eae
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - SceneData: {instanceID: 0}
+  - currentCamera: {instanceID: 0}
+  - onCameraUpdate: {instanceID: 0}
+  - frustumCullingShader: {fileID: 7200000, guid: e82eedd14c716fc4ea275d5898382edc, type: 3}
   executionOrder: 0
   icon: {fileID: 2800000, guid: 53b798f87c3af534893455e7f6514777, type: 3}
   userData: 
