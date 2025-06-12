@@ -12,21 +12,20 @@ public class PropagationBrushModel
     public Action<StrokeData> OnStroke;
 
     private PropagationBrushSettingsModel Brush;
-    private BrushDrawerModel brushDrawerModel;
+    private BrushDrawerSubModel brushDrawerModel;
     private bool isBrushActive = false;
-    private SceneData sceneData;
+    private Camera sceneCamera;
     #endregion
 
     #region Scene State
-    static bool isPressing;
+     bool isPressing;
     #endregion
 
     #region Constructor
     public PropagationBrushModel(PropagationBrushSettingsModel brush)
     {
-        SceneView.duringSceneGui += OnSceneGUI;
         Brush = brush;
-        brushDrawerModel = new BrushDrawerModel();
+        brushDrawerModel = new BrushDrawerSubModel();
     }
     #endregion
 
@@ -35,22 +34,66 @@ public class PropagationBrushModel
         isBrushActive = isActive;
     }
 
-    private void OnSceneGUI(SceneView sceneView)
+    public bool GetBrushActive()
     {
-        Event e = Event.current;
+        return isBrushActive;
+    }
 
-        if (e.type == EventType.MouseDown && e.button == 0 && e.control)
-        {
-            isPressing = true;
-            e.Use();
-        }
+    public void DrawBrush(Camera camera)
+    {
+       
+        sceneCamera = camera;
+        brushDrawerModel.DrawBrush(camera, Brush);
+        
+    }
 
-        if (isBrushActive)
+
+    public void HandleBrushCommand()
+    {
+        switch (Brush.brushMode)
         {
-            brushDrawerModel.DrawBrush(sceneView.camera, Brush);
-            sceneView.Repaint();
+            case PropagationBrushWindow.BrushMode.Paint: Paint(); break;
+
+            case PropagationBrushWindow.BrushMode.Erase: break;
         }
     }
+
+    private void Paint()
+    {
+        StrokeData stroke = new StrokeData();
+
+        switch (Brush.sampleMode)
+        {
+            case PropagationBrushWindow.PropagationMode.Random:
+                
+               stroke = PaintRandom();
+
+                break;
+
+           
+        }
+
+
+       OnStroke?.Invoke(stroke);
+
+    }
+
+    private StrokeData PaintRandom() {
+
+        BrushPoint brushPoint = brushDrawerModel.GetBrushPoint();
+        BrushDataSO brushDataSO = Brush.selectedBrushSO;
+        float brushSize = Brush.brushSize;
+        float brushDensity = Brush.brushDensity;
+        int count = Brush.instanceCount;
+        int meshIndex = Brush.selectedMeshIndex;
+
+        BrushRandom2D brushRandom2D = new BrushRandom2D();
+
+        StrokeData data = brushRandom2D.ApplyBrush(brushDataSO, brushPoint.brushPoint, brushPoint.brushNormal, brushSize,brushDensity, count, meshIndex, sceneCamera);
+
+        return data;
+    }
+
 
     static bool IsValidQuaternion(Quaternion q)
     {
@@ -72,10 +115,11 @@ public class PropagationBrushModel
     */
 }
 
-public class BrushDrawerModel
+public class BrushDrawerSubModel
 {
     private Vector3 lastHitNormal;
     private Vector3 lastHitPoint;
+    
 
     public void DrawBrush(Camera camera, PropagationBrushSettingsModel brush)
     {
@@ -113,5 +157,23 @@ public class BrushDrawerModel
             Quaternion.LookRotation(Vector3.Cross(lastHitNormal, camera.transform.right))
         );
     }
+
+    public BrushPoint GetBrushPoint()
+    {
+        BrushPoint brushPoint = new BrushPoint
+        {
+            brushPoint = lastHitPoint,
+            brushNormal = lastHitNormal
+        };
+
+        return brushPoint;
+    }
+}
+
+
+public struct BrushPoint
+{
+    public Vector3 brushPoint;
+    public Vector3 brushNormal;
 }
 #endif

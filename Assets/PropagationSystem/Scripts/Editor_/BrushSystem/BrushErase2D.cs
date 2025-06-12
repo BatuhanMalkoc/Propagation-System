@@ -17,7 +17,7 @@ namespace PropagationSystem.Editor
           
 
             TransformData tData = sceneData.propagatedObjectDatas[meshIndex];
-            List<SavedPositions> list = tData.trsMatrices;
+            List<SavedPositions> list = tData.instanceDatas;
             float r2 = radius * radius;
 
             for (int i = list.Count - 1; i >= 0; i--)
@@ -26,7 +26,7 @@ namespace PropagationSystem.Editor
                     list.RemoveAt(i);
             }
 
-            tData.trsMatrices = list;
+            tData.instanceDatas = list;
             sceneData.propagatedObjectDatas[meshIndex] = tData;
             EditorPreviewer.CalculateFrustum();
             EditorUtility.SetDirty(sceneData);

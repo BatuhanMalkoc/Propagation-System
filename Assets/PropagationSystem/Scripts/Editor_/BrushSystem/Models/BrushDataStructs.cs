@@ -7,8 +7,10 @@ namespace PropagationSystem.Editor
 {
     public struct StrokeData
     {
-        BrushPaintData[] brushPaintDatas;
-        PropagationBrushWindow.BrushMode brushMode;
+        public SavedPositions[] savedPositions;
+        public PropagationBrushWindow.BrushMode brushMode;
+        public int meshIndex;
+    
     }
     public struct BrushPaintData
     {

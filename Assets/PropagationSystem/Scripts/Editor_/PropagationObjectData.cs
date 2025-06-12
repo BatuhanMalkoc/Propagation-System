@@ -7,12 +7,12 @@ namespace PropagationSystem
     [Serializable]
     public struct TransformData
     {
-        public List<SavedPositions> trsMatrices;  //Transform , Rotation , Scale
+        public List<SavedPositions> instanceDatas;  //Transform , Rotation , Scale
          public int meshIndex; // Added
 
         public TransformData(bool init = true)
         {
-            trsMatrices = new List<SavedPositions>();
+            instanceDatas = new List<SavedPositions>();
             meshIndex = -1;
         }
     }
@@ -27,7 +27,7 @@ namespace PropagationSystem
     public struct SavedPositions
     {
       [SerializeReference]  public Vector3 position;
-      [SerializeReference] public Quaternion rotation;
+      [SerializeReference]  public Quaternion rotation;
       [SerializeReference]  public Vector3 scale;
     }
 }

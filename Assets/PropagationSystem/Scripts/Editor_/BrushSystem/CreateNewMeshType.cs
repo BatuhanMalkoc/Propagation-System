@@ -1,6 +1,7 @@
 ﻿#if UNITY_EDITOR
 using System;
 using UnityEditor;
+using UnityEditor.PackageManager.UI;
 using UnityEngine;
 
 namespace PropagationSystem.Editor
@@ -8,6 +9,8 @@ namespace PropagationSystem.Editor
     public class CreateNewMeshType : EditorWindow
     {
         public static SceneData sceneData;
+
+        public static CreateNewMeshType Instance { get; private set; }
 
         private Mesh mesh;
         private Material material;
@@ -18,12 +21,24 @@ namespace PropagationSystem.Editor
         private GUIStyle errorStyle;
 
         public Action<MeshData> OnMeshCreated;
+        public Action OnWindowClosed;
 
         public static void OpenWindow()
         {
             var window = GetWindow<CreateNewMeshType>("Add Mesh Type", true);
             window.minSize = new Vector2(320, 400);
+
+            if (Instance == null)
+            {
+                Instance = window;
+            }
+            else
+            {
+                Instance.Focus(); // Eğer zaten açıksa öne getir
+            }
+                
             window.SetSceneData();
+            
         }
 
         public  void SetSceneData()
@@ -34,8 +49,16 @@ namespace PropagationSystem.Editor
         private void OnEnable()
         {
             InitStyles();
+            Instance = this;
         }
-
+        private void OnDisable()
+        {
+            OnWindowClosed?.Invoke();
+            if (Instance  == this)
+            {
+                Instance = null;
+            }
+        }
         private void InitStyles()
         {
             headerStyle = new GUIStyle(EditorStyles.boldLabel)
@@ -142,6 +165,7 @@ namespace PropagationSystem.Editor
 
             if (GUILayout.Button("Cancel", GUILayout.Height(32), GUILayout.Width(120)))
             {
+                OnWindowClosed?.Invoke();
                 Close();
             }
 
@@ -174,11 +198,12 @@ namespace PropagationSystem.Editor
                 useFrustumCulling = useFrustumCulling
             };
 
-            sceneData.propagatedMeshDefinitions.Add(createdMeshData);
-            EditorPreviewer.SetPreviewMode(false);
+            OnMeshCreated?.Invoke(createdMeshData);
 
-            EditorUtility.SetDirty(sceneData);
-            sceneData.OnValidateExternalCall();
+           
+            
+
+            OnWindowClosed?.Invoke();
 
             Close();
         }

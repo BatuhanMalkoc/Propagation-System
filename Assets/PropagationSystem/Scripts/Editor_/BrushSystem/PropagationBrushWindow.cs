@@ -38,7 +38,7 @@ namespace PropagationSystem.Editor
         private bool view_IsBrushEnabled = false;
         private int view_SelectedMeshIndex;
         private int view_InstanceCount;
-
+        private bool view_IsPressing;
         #endregion
 
         #region Brush - Enums
@@ -98,7 +98,10 @@ namespace PropagationSystem.Editor
         public Action<BrushMode> OnBrushModeChanged;
         public Action<PropagationMode> OnSampleModeChanged;
         public Action<int> OnInstanceCountChanged;
-
+        public Action<MeshData> OnMeshCreated;
+        public Action<SceneData> OnSceneDataChanged;
+        public Action<int> OnMeshRemoved;
+        public Action OnPaintRequested;
         #endregion
 
         #endregion
@@ -115,8 +118,20 @@ namespace PropagationSystem.Editor
 
         #endregion
 
+        #region External View Events 
 
+        private void OnNewMeshAdded(MeshData data)
+        {
+            OnMeshCreated?.Invoke(data);
+        }
 
+        private void OnNewMeshAddWindowClosed()
+        {
+            CreateNewMeshType.Instance.OnMeshCreated -= OnNewMeshAdded;
+            CreateNewMeshType.Instance.OnWindowClosed -= OnNewMeshAddWindowClosed;
+        }
+
+        #endregion
 
         #region Window Utilities
 
@@ -129,8 +144,12 @@ namespace PropagationSystem.Editor
 
             window.presenter = new PropagationBrushWindowPresenter(window);
 
+         
+
             window.Initialize();
         }
+
+       
 
         public  void Refresh()
         {
@@ -140,7 +159,8 @@ namespace PropagationSystem.Editor
         private  void Initialize()
         {
 
-
+            SceneView.duringSceneGui -= OnSceneGUI; // double eklemeyi engelle
+            SceneView.duringSceneGui += OnSceneGUI;
             windowIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.PROPAGATIONICONGUID);
             brushMeshPath = AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMESHGUID);
             brushMaterialPath = AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMATERIALGUID); 
@@ -226,6 +246,7 @@ namespace PropagationSystem.Editor
         void GUI_SceneData()
         {
             sceneData = (SceneData)EditorGUILayout.ObjectField("Scene Data", sceneData, typeof(SceneData), false);
+            OnSceneDataChanged?.Invoke(sceneData);
         }
 
         void GUI_MeshList()
@@ -306,11 +327,8 @@ namespace PropagationSystem.Editor
 
                 if (confirmed)
                 {
-                    sceneData.propagatedMeshDefinitions.RemoveAt(view_SelectedMeshIndex);
-                    view_SelectedMeshIndex = 0;
-
-                    sceneData.OnValidateExternalCall();
-                    EditorUtility.SetDirty(sceneData);
+                    OnMeshRemoved?.Invoke(view_SelectedMeshIndex);    
+                    view_SelectedMeshIndex = 0;      
                 }
             }
 
@@ -520,6 +538,8 @@ namespace PropagationSystem.Editor
 
             #region Presenter Calls 
             OnBrushSizeChanged?.Invoke(view_BrushSize);
+            OnBrushDensityChanged?.Invoke(view_BrushDensity);
+            OnInstanceCountChanged?.Invoke(view_InstanceCount);
             OnBrushModeChanged?.Invoke(brushMode);
             OnSampleModeChanged?.Invoke(SampleMode);
             #endregion
@@ -535,9 +555,14 @@ namespace PropagationSystem.Editor
             {
                 EditorPreviewer.SetPreviewMode(false);
                 CreateNewMeshType.OpenWindow();
-                
+                CreateNewMeshType.Instance.OnMeshCreated += OnNewMeshAdded;
+                CreateNewMeshType.Instance.OnWindowClosed += OnNewMeshAddWindowClosed;
             }
         }
+
+
+       
+
 
         private BrushDataSO GetDefaultBrush()
         {
@@ -596,11 +621,16 @@ namespace PropagationSystem.Editor
             return loaded;
         }
 
+        
+
 
         private void OnGUI()
         {
-            // 2) Mevcut tüm GUI içeriðinizi aþaðýdaki iki satýr arasýna alýn:
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
+
+            
+
+                // 2) Mevcut tüm GUI içeriðinizi aþaðýdaki iki satýr arasýna alýn:
+                scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
 
             GUI_Label();
             GUI_UpdateIcon();
@@ -697,10 +727,60 @@ namespace PropagationSystem.Editor
             // 4) Burada ScrollView'u kapatýyoruz:
             EditorGUILayout.EndScrollView();
 
+        
+}
 
 
 
+
+        private void OnSceneGUI(SceneView sceneView)
+        {
+            // 1. GUI Overlay
+            Handles.BeginGUI();
+            GUI.Label(new Rect(10, 10, 200, 20), "Scene GUI aktif");
+            Handles.EndGUI();
+
+            // 2. Event Validasyonu
+            Event e = Event.current;
+            if (e == null)
+            {
+                Debug.Log("Event Null");
+                return;
+            }
+
+            // 3. Brush Mode Güncelleme (Shift ile Erase Mode)
+            BrushMode currentMode = e.shift ? BrushMode.Erase : brushMode;
+            OnBrushModeChanged?.Invoke(currentMode);
+
+            // 4. Brush Aktifken Seçimi Engelle + Input Kullanýmý
+            if (view_IsBrushEnabled)
+            {
+                // Seçimi engelle (Brush aktifken)
+                HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
+
+                // Mouse input (sadece sol click için)
+                if (e.type == EventType.MouseDown && e.button == 0)
+                {
+                    view_IsPressing = true;
+                    e.Use(); // Event’i tüketiyoruz
+                }
+
+                if (view_IsPressing)
+                {
+                    Debug.Log("Basýyor");
+                    OnPaintRequested?.Invoke();
+                    view_IsPressing = false;
+                }
+            }
+            else
+            {
+                // Brush kapalýysa: Seçim normal Unity davranýþýna döner (bu kýsmý boþ býrakýyoruz)
+                // HandleUtility.AddDefaultControl çaðrýsý yapýlmazsa, Unity objeleri seçmeye devam eder.
+            }
         }
+
+
+
 
         #endregion
 
@@ -776,6 +856,8 @@ namespace PropagationSystem.Editor
             {
                 EditorPrefs.DeleteKey(BrushSet_PrefKey);
             }
+
+            SceneView.duringSceneGui -= OnSceneGUI;
 
             EditorPrefs.SetFloat(BrushSize_PrefKey, view_BrushSize);
             EditorPrefs.SetInt(SelectedMeshIndex_PrefKey, view_SelectedMeshIndex);

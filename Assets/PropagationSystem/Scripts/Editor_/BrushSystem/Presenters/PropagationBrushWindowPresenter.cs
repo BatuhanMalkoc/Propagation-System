@@ -2,6 +2,7 @@
 using System;
 using UnityEngine;
 using PropagationSystem.Editor;
+using UnityEditor;
 
 
 
@@ -14,12 +15,18 @@ namespace PropagationSystem.Editor
         private readonly PropagationBrushWindow _view;
         private readonly PropagationBrushSettingsModel _brushSettingsModel;
         private readonly PropagationBrushModel _brushModel;
+        private readonly PropagationSceneDataModel _sceneDataModel;
 
         public PropagationBrushWindowPresenter(PropagationBrushWindow view)
         {
+
+            SceneView.duringSceneGui += OnSceneGUI;
+
             _view = view;
 
             _brushSettingsModel = new PropagationBrushSettingsModel();
+
+            _sceneDataModel = new PropagationSceneDataModel();
 
             _brushModel = new PropagationBrushModel(_brushSettingsModel);
 
@@ -39,15 +46,53 @@ namespace PropagationSystem.Editor
 
             _view.OnSampleModeChanged += HandleSampleModeChanged;
 
+            _view.OnMeshCreated += HandleMeshCreated;
+
+            _view.OnSceneDataChanged += HandleSceneDataChanged;
+
+            _view.OnMeshRemoved += HandleMeshRemoved;
+
+            _view.OnPaintRequested += HandlePaintRequested;
+
+            _view.OnInstanceCountChanged += HandleInstanceCountChanged;
+
             _brushModel.OnStroke += OnBrushApplied;
+        }
+
+        private void OnSceneGUI(SceneView view)
+        {
+           if(_brushModel.GetBrushActive())
+            {
+                _brushModel.DrawBrush(view.camera);
+                view.Repaint();
+
+            }
         }
 
         #region View Event Handlers
 
+        private void HandlePaintRequested()
+        {
+            _brushModel.HandleBrushCommand();
+        }
+        private void HandleMeshCreated(MeshData meshData)
+        {
+           _sceneDataModel.AddNewMeshDefinition(meshData);
+        }
+        private void HandleSceneDataChanged(SceneData sceneData)
+        {
+            _sceneDataModel.SetSceneData(sceneData);
+        }
+        private void HandleMeshRemoved(int meshIndex)
+        {
+            _sceneDataModel.RemoveMeshDefinition(meshIndex);
+        }
 
         private void HandleBrushSizeChanged(float size) { _brushSettingsModel.SetBrushSize(size); }
 
         private void HandleBrushDensityChanged(int brushDensity) { _brushSettingsModel.SetBrushDensity(brushDensity); }
+
+        private void HandleInstanceCountChanged(int instanceCount) { _brushSettingsModel.SetInstanceCount(instanceCount); }
 
         private void HandleActivateBrush(bool isActive) { _brushModel.ToggleBrush(isActive); }
 
@@ -65,7 +110,7 @@ namespace PropagationSystem.Editor
         private void HandleBrushModeChanged(PropagationBrushWindow.BrushMode brushMode) { _brushSettingsModel.SetBrushMode(brushMode); }
 
         private void HandleSampleModeChanged(PropagationBrushWindow.PropagationMode sampleMode) { _brushSettingsModel.SetSampleMode(sampleMode); }
-       
+
 
 
         #endregion
@@ -73,6 +118,9 @@ namespace PropagationSystem.Editor
 
         #region Getters
 
+
+        
+        
 
 
 
@@ -82,6 +130,10 @@ namespace PropagationSystem.Editor
 
         private void OnBrushApplied(StrokeData stroke)
         {
+            Debug.Log("OnBrushApplied called with " + stroke.savedPositions.Length + " paint data items.");
+
+            
+            _sceneDataModel.AddInstances(stroke.meshIndex, stroke.savedPositions);
 
         }
 

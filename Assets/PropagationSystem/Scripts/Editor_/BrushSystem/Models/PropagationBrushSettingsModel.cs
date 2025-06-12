@@ -12,6 +12,7 @@ public class PropagationBrushSettingsModel
     public float brushSize { get; private set; }
     public float brushDensity { get; private set; }
 
+    public int instanceCount { get; private set; } // Default instance count for brush strokes
     #endregion
 
     #region Visual Assets
@@ -49,6 +50,7 @@ public class PropagationBrushSettingsModel
 
     #region Setters
 
+    public void SetInstanceCount(int count) { instanceCount = count; }
     public void SetBrushSize(float size) { brushSize = size; }
   
     public void SetBrushDensity(float density) { brushDensity = density; }

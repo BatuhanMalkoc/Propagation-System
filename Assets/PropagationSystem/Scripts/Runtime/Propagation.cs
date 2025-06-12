@@ -75,7 +75,7 @@ namespace PropagationSystem
             for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
             {
 
-                if (SceneData.propagatedObjectDatas[i].trsMatrices.Count > 0)
+                if (SceneData.propagatedObjectDatas[i].instanceDatas.Count > 0)
                 {            
                         renderersList.Add(CreateFrustumRenderer(i));
                 }
@@ -92,12 +92,12 @@ namespace PropagationSystem
             ComputeShader shader = Instantiate(frustumCullingShader);
             Mesh mesh = SceneData.propagatedMeshDefinitions[i].mesh;
             Material material = Instantiate(SceneData.propagatedMeshDefinitions[i].material);
-            TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].trsMatrices.Count];
+            TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].instanceDatas.Count];
 
-            for (int j = 0; j < SceneData.propagatedObjectDatas[i].trsMatrices.Count; j++)
+            for (int j = 0; j < SceneData.propagatedObjectDatas[i].instanceDatas.Count; j++)
             {
                 TransformData data = SceneData.propagatedObjectDatas[i];
-                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
+                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.instanceDatas[j].position, data.instanceDatas[j].rotation, data.instanceDatas[j].scale);
 
                 trs[j].trsMatrices = transferMatrix;
             }
@@ -113,12 +113,12 @@ namespace PropagationSystem
             ComputeShader shader = Instantiate(frustumCullingShader);
             Mesh mesh = SceneData.propagatedMeshDefinitions[i].mesh;
             Material material = Instantiate(SceneData.propagatedMeshDefinitions[i].material);
-            TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].trsMatrices.Count];
+            TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].instanceDatas.Count];
 
-            for (int j = 0; j < SceneData.propagatedObjectDatas[i].trsMatrices.Count; j++)
+            for (int j = 0; j < SceneData.propagatedObjectDatas[i].instanceDatas.Count; j++)
             {
                 TransformData data = SceneData.propagatedObjectDatas[i];
-                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
+                Matrix4x4 transferMatrix = Matrix4x4.TRS(data.instanceDatas[j].position, data.instanceDatas[j].rotation, data.instanceDatas[j].scale);
 
                 trs[j].trsMatrices = transferMatrix;
             }

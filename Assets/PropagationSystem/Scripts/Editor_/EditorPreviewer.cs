@@ -77,17 +77,17 @@ public static class EditorPreviewer
         if (!isInitialized) return;
 
         // 1. Yeni eklenen objeler için TransformTransferData dizisi oluşturuluyor
-        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].trsMatrices.Count];
+        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].instanceDatas.Count];
 
        
 
-        for (int j = 0; j < SceneData.propagatedObjectDatas[index].trsMatrices.Count; j++)
+        for (int j = 0; j < SceneData.propagatedObjectDatas[index].instanceDatas.Count; j++)
         {
             TransformData data = SceneData.propagatedObjectDatas[index];
             Matrix4x4 transferMatrix = Matrix4x4.TRS(
-                data.trsMatrices[j].position,
-                data.trsMatrices[j].rotation,
-                data.trsMatrices[j].scale
+                data.instanceDatas[j].position,
+                data.instanceDatas[j].rotation,
+                data.instanceDatas[j].scale
             );
             trs[j].trsMatrices = transferMatrix;
         }
@@ -200,7 +200,7 @@ public static class EditorPreviewer
     {
         for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
         {
-            if (SceneData.propagatedObjectDatas[i].trsMatrices.Count > 0)
+            if (SceneData.propagatedObjectDatas[i].instanceDatas.Count > 0)
             {
                 renderers.Add(CreateEditorRenderer(i));
             }
@@ -212,12 +212,12 @@ public static class EditorPreviewer
         ComputeShader shader = Object.Instantiate(frustumComputeShader);
         Mesh mesh = SceneData.propagatedMeshDefinitions[i].mesh;
         Material material = Object.Instantiate(SceneData.propagatedMeshDefinitions[i].material);
-        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].trsMatrices.Count];
+        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].instanceDatas.Count];
 
-        for (int j = 0; j < SceneData.propagatedObjectDatas[i].trsMatrices.Count; j++)
+        for (int j = 0; j < SceneData.propagatedObjectDatas[i].instanceDatas.Count; j++)
         {
             TransformData data = SceneData.propagatedObjectDatas[i];
-            Matrix4x4 transferMatrix = Matrix4x4.TRS(data.trsMatrices[j].position, data.trsMatrices[j].rotation, data.trsMatrices[j].scale);
+            Matrix4x4 transferMatrix = Matrix4x4.TRS(data.instanceDatas[j].position, data.instanceDatas[j].rotation, data.instanceDatas[j].scale);
 
             trs[j].trsMatrices = transferMatrix;
         }
