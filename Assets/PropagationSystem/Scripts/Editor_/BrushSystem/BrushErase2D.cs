@@ -28,7 +28,7 @@ namespace PropagationSystem.Editor
 
             tData.instanceDatas = list;
             sceneData.propagatedObjectDatas[meshIndex] = tData;
-            EditorPreviewer.CalculateFrustum();
+            //EditorPreviewer.CalculateFrustum();
             EditorUtility.SetDirty(sceneData);
         }
     }

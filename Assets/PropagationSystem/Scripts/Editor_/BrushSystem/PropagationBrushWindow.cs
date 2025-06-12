@@ -5,6 +5,7 @@ using PropagationSystem;
 using PropagationSystem.Editor;
 using System.IO;
 using System;
+using System.Collections;
 namespace PropagationSystem.Editor
 {
 #if UNITY_EDITOR
@@ -42,6 +43,7 @@ namespace PropagationSystem.Editor
         private int view_SelectedMeshIndex;
         private int view_InstanceCount;
         private bool view_IsPressing;
+        private bool view_isPreviewing = false; // Preview mode state
         #endregion
 
         #region Brush - Enums
@@ -76,19 +78,16 @@ namespace PropagationSystem.Editor
         const string SceneData_PrefKey = "EditorPref_SceneDataKey";
         const string BrushSet_PrefKey = "EditorPref_BrushSetKey";
         const string BrushSize_PrefKey = "EditorPref_BrushSizeKey";
+        const string InstanceCount_PrefKey = "EditorPref_InstanceCountKey";
+        const string BrushMode_PrefKey = "EditorPref_BrushModeKey";
+        const string SampleMode_PrefKey = "EditorPref_SampleModeKey";
         const string Density_PrefKey = "EditorPref_DensityKey";
         const string SelectedMeshIndex_PrefKey = "EditorPref_SelectedMeshIndexKey";
         const string SelectedBrushIndex_PrefKey = "EditorPref_SelectedBrushIndexKey";
 
         #endregion
 
-        #region Resource GUID Paths
-
-        private string windowIconPath;
-        private string brushMeshPath;
-        private string brushMaterialPath;
-
-        #endregion
+       
 
         #region UI - View Event Actions
 
@@ -116,10 +115,17 @@ namespace PropagationSystem.Editor
 
         public void SetCurrentBrushTextureAndName(Texture2D texture, string brushName)
         {
+            Debug.Log("Texture Atandý");
             view_CurrentBrushTexture = texture;
             view_SelectedBrushName = brushName;
         }
 
+      
+
+        public void SetPreviewMode(bool mode)
+        {
+            view_isPreviewing = mode;
+        }
 
         #endregion
 
@@ -164,7 +170,9 @@ namespace PropagationSystem.Editor
 
             SceneView.duringSceneGui -= OnSceneGUI;
             SceneView.duringSceneGui += OnSceneGUI;
+
             
+
         }
 
      
@@ -511,7 +519,7 @@ namespace PropagationSystem.Editor
 
             if (GUILayout.Button(addMeshIcon,GUILayout.Width(48),GUILayout.Height(48)))
             {
-                EditorPreviewer.SetPreviewMode(false);
+               
                 CreateNewMeshType.OpenWindow();
                 CreateNewMeshType.Instance.OnMeshCreated += OnNewMeshAdded;
                 CreateNewMeshType.Instance.OnWindowClosed += OnNewMeshAddWindowClosed;
@@ -662,22 +670,21 @@ namespace PropagationSystem.Editor
 
             #region Preview Buttons
 
-            string previewButtonText = isPreviewing ? "Stop Previewing" : "Start Previewing";
+            string previewButtonText = view_isPreviewing ? "Stop Previewing" : "Start Previewing";
 
             if (GUILayout.Button(previewButtonText))
             {
-                isPreviewing = !isPreviewing;
+                view_isPreviewing = !view_isPreviewing;
 
-                if (isPreviewing)
+                if (view_isPreviewing)
                 {
                     OnStartPreviewing?.Invoke();
-                    EditorPreviewer.Setup(view_SceneData);
-                    EditorPreviewer.SetPreviewMode(true);
+                
                 }
                 else
                 {
                     OnStopPreviewing?.Invoke();
-                    EditorPreviewer.SetPreviewMode(false);
+
                 }
             }
             #endregion
@@ -743,7 +750,7 @@ namespace PropagationSystem.Editor
         {
             string path = EditorPrefs.GetString(SceneData_PrefKey, null);
 
-           
+
 
             if (!string.IsNullOrEmpty(path))
             {
@@ -768,23 +775,34 @@ namespace PropagationSystem.Editor
                     view_SelectedMeshIndex = 0;
                 }
             }
-            
 
-            view_SelectedBrushIndex = EditorPrefs.GetInt(SelectedBrushIndex_PrefKey, 0);    
+
+            view_SelectedBrushIndex = EditorPrefs.GetInt(SelectedBrushIndex_PrefKey, 0);
 
             if (view_SelectedBrushIndex >= view_SelectedBrushSet.brushes.Count)
             {
                 view_SelectedBrushIndex = 0;
             }
 
-           
-           
+
+
 
             view_BrushDensity = EditorPrefs.GetInt(Density_PrefKey, 50);
-          
+
+            view_InstanceCount = EditorPrefs.GetInt(InstanceCount_PrefKey, 0);
+            brushMode = (BrushMode)EditorPrefs.GetInt(BrushMode_PrefKey, (int)BrushMode.Paint);
+            SampleMode = (PropagationMode)EditorPrefs.GetInt(SampleMode_PrefKey, (int)PropagationMode.Random);
+
+
+           
+
+
+
         }
 
-        
+     
+
+
         void OnDisable()
         {
            
@@ -818,6 +836,10 @@ namespace PropagationSystem.Editor
             EditorPrefs.SetInt(SelectedMeshIndex_PrefKey, view_SelectedMeshIndex);
             EditorPrefs.SetInt(Density_PrefKey, view_BrushDensity);
             EditorPrefs.SetInt(SelectedBrushIndex_PrefKey, view_SelectedBrushIndex);
+
+            EditorPrefs.SetInt(InstanceCount_PrefKey, view_InstanceCount);
+            EditorPrefs.SetInt(BrushMode_PrefKey, (int)brushMode);
+            EditorPrefs.SetInt(SampleMode_PrefKey, (int)SampleMode);
         }
         #endregion
     }

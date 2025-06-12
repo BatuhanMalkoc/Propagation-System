@@ -1,89 +1,143 @@
-﻿using PropagationSystem;
-using UnityEngine;
-using System.Collections.Generic;
-using UnityEditor.Analytics;
-using UnityEditor;
-using UnityEngine.Rendering;
-using System.Collections;
-using Unity.VisualScripting;
-using PropagationSystem.Editor;
+﻿#if UNITY_EDITOR
 
-#if UNITY_EDITOR
+using PropagationSystem;
+using UnityEngine;
+using UnityEditor;
+using System.Collections.Generic;
+using UnityEngine.Rendering;
 
 [ExecuteInEditMode]
-[InitializeOnLoad]
-public static class EditorPreviewer
+public class EditorPreviewer
 {
-    static SceneData SceneData;
+    SceneData sceneData;
+    ComputeShader frustumComputeShader;
+    Camera sceneCamera;
+    List<EditorRenderer> renderers = new List<EditorRenderer>();
+    ComputeBuffer planesBuffer;
 
-    static ComputeShader frustumComputeShader;
+    Plane[] frustumPlanes = new Plane[6];
+    Vector3 lastCamPosition;
+    Quaternion lastCamRot;
+    float frustumSmoothDistance = 4;
 
-    static Camera sceneCamera;
+    bool isInPlayMode = false;
+    bool isPreviewing = false;
+    bool isInitialized = false;
+    bool isFrustumCalculationNeeded = false;
+    bool isFrustumWarm = false;
 
-    static List<EditorRenderer> renderers = new List<EditorRenderer>();
-
-    static ComputeBuffer planesBuffer;
-
-    static Plane[] frustumPlanes = new Plane[6];
-
-    static Vector3 lastCamPosition;
-
-    static Quaternion lastCamRot;
-
-    static float frustumSmoothDistance = 4;
-
-   static bool isInPlayMode = false;
-    
     const string FRUSTUMCOMPUTESHADERGUID = "e82eedd14c716fc4ea275d5898382edc";
 
-    static bool isPreviewing = false;
-    static bool isInitialized = false;
+    public EditorPreviewer()
+    {
+        SceneView.duringSceneGui += Update;
+        EditorApplication.playModeStateChanged += OnEnterPlayMode;
+    }
 
-    static bool isFrustumCalculationNeeded = false;
-
-    static bool isFrustumWarm = false;
-
-    public static void Setup(SceneData sceneData)
+    public void Setup(SceneData sceneData)
     {
         if (isInPlayMode) return;
 
-        
-        SceneData = sceneData;
+        this.sceneData = sceneData;
         FindSceneCamera();
         lastCamPosition = sceneCamera.transform.position;
         Initialize();
-
-       // PropagationBrushWindow.OnBrushStroke += OnSceneDataChanged;
     }
-    public static void SetPreviewMode(bool previewMode)
+
+    public void SetPreviewMode(bool previewMode)
     {
         isPreviewing = previewMode;
         if (!isPreviewing)
-        {
             Teardown();
-           
+    }
+
+    public bool GetIsPreviewing()
+    {
+        return isPreviewing;
+    }
+    public void Teardown()
+    {
+        DisposeEverything();
+    }
+
+    void DisposeEverything()
+    {
+        isInitialized = false;
+        isPreviewing = false;
+
+        DisposeRenderers();
+        renderers.Clear();
+        sceneData = null;
+
+        planesBuffer?.Dispose();
+        planesBuffer = null;
+    }
+
+    void DisposeRenderers()
+    {
+        foreach (EditorRenderer renderer in renderers)
+            renderer.DisposeAll();
+    }
+
+    void OnEnterPlayMode(PlayModeStateChange change)
+    {
+        switch (change)
+        {
+            case PlayModeStateChange.EnteredPlayMode:
+                DisposeEverything();
+                isInPlayMode = true;
+                break;
+
+            case PlayModeStateChange.ExitingPlayMode:
+                isInPlayMode = false;
+                break;
+        }
+    }
+
+    void FindSceneCamera()
+    {
+        sceneCamera = SceneView.lastActiveSceneView.camera;
+    }
+
+    public void Initialize()
+    {
+        if (sceneData == null && isInitialized) return;
+
+        planesBuffer = new ComputeBuffer(6, sizeof(float) * 4);
+        CalculateFrustum();
+
+        if (frustumComputeShader == null)
+        {
+            string shaderPath = AssetDatabase.GUIDToAssetPath(FRUSTUMCOMPUTESHADERGUID);
+            frustumComputeShader = EditorGUIUtility.Load(shaderPath) as ComputeShader;
         }
 
-    
+        DisposeRenderers();
+        renderers.Clear();
+        SetupRenderers();
+
+        isInitialized = true;
     }
 
-    public static void Teardown()
+    void SetupRenderers()
     {
-        //PropagationBrushWindow.OnBrushStroke -= OnSceneDataChanged;
-        DisposeEverthing();
-    }
-    public static void OnSceneDataChanged(int index)
-    {
-        if (!isInitialized) return;
-
-        // 1. Yeni eklenen objeler için TransformTransferData dizisi oluşturuluyor
-        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[index].instanceDatas.Count];
-
-       
-
-        for (int j = 0; j < SceneData.propagatedObjectDatas[index].instanceDatas.Count; j++)
+        for (int i = 0; i < sceneData.propagatedMeshDefinitions.Count; i++)
         {
-            TransformData data = SceneData.propagatedObjectDatas[index];
+            if (sceneData.propagatedObjectDatas[i].instanceDatas.Count > 0)
+                renderers.Add(CreateEditorRenderer(i));
+        }
+    }
+
+    EditorRenderer CreateEditorRenderer(int i)
+    {
+        ComputeShader shader = Object.Instantiate(frustumComputeShader);
+        Mesh mesh = sceneData.propagatedMeshDefinitions[i].mesh;
+        Material material = Object.Instantiate(sceneData.propagatedMeshDefinitions[i].material);
+        TransformTransferData[] trs = new TransformTransferData[sceneData.propagatedObjectDatas[i].instanceDatas.Count];
+
+        for (int j = 0; j < sceneData.propagatedObjectDatas[i].instanceDatas.Count; j++)
+        {
+            TransformData data = sceneData.propagatedObjectDatas[i];
             Matrix4x4 transferMatrix = Matrix4x4.TRS(
                 data.instanceDatas[j].position,
                 data.instanceDatas[j].rotation,
@@ -91,232 +145,93 @@ public static class EditorPreviewer
             );
             trs[j].trsMatrices = transferMatrix;
         }
-    
-        // 2. Eğer index ≥ renderers.Count ise renderers silinip yeniden initialize ediliyor
-        if (renderers.Count <= index)
-        {
-            DisposeRenderers();
-            renderers.Clear();
-            if (trs.Length <= 0) return;
-            SetupRenderers(); // ✱
-        }
 
-        // 3. Güncellenen TRS verisi ilgili renderer'a set ediliyor
-        if (trs.Length <= 0) return;
-        isFrustumWarm = true;
-
-        renderers[index].Update(trs);
-
-
-        // 4. SceneView'i yeniden boyamak için
-     
+        return new EditorRenderer(mesh, material, shader, trs, planesBuffer);
     }
 
-    static void DisposeEverthing() {
-
-        isInitialized = false;
-        isPreviewing = false;
-
-
-        DisposeRenderers();
-
-
-        renderers.Clear();
-        SceneData = null;
-
-        if (planesBuffer != null)
-        {
-            planesBuffer.Dispose();
-        }
-       
-    }
-
-    static void DisposeRenderers()
-    {
-        foreach (EditorRenderer renderer in renderers)
-        {
-            renderer.DisposeAll();
-        }
-    }
-
-    static EditorPreviewer()
-    {
-
-
-        SceneView.duringSceneGui += Update;
-        EditorApplication.playModeStateChanged += OnEnterPlayMode;
-    }
-
-    private static void OnEnterPlayMode(PlayModeStateChange change)
-    {
-        switch (change)
-        {
-            case PlayModeStateChange.EnteredPlayMode:
-                DisposeEverthing();
-                isInPlayMode = true;
-                break;
-
-            case PlayModeStateChange.ExitingPlayMode:
-                isInPlayMode = false;
-                break;
-
-        }
-    }
-
-    static void FindSceneCamera()
-    {
-        sceneCamera = UnityEditor.SceneView.lastActiveSceneView.camera;
-
-    }
-
-
-    public static void Initialize()
-    {
-        if (SceneData == null&&isInitialized) { return; }
-
-      
-            planesBuffer = new ComputeBuffer(6, sizeof(float) * 4);
-       
-        CalculateFrustum();
-
-        if (frustumComputeShader == null)
-        {
-            string shaderPath = AssetDatabase.GUIDToAssetPath(FRUSTUMCOMPUTESHADERGUID);
-            frustumComputeShader = EditorGUIUtility.Load(shaderPath) as ComputeShader;
-           
-
-        }
-
-      
-
-        DisposeRenderers(); // ✱
-        renderers.Clear();  // ✱
-        SetupRenderers();   // ✱
-
-        isInitialized = true;
-    }
-
-    static void SetupRenderers()
-    {
-        for (int i = 0; i < SceneData.propagatedMeshDefinitions.Count; i++)
-        {
-            if (SceneData.propagatedObjectDatas[i].instanceDatas.Count > 0)
-            {
-                renderers.Add(CreateEditorRenderer(i));
-            }
-        }
-
-    }
-   static EditorRenderer CreateEditorRenderer(int i)
-    {
-        ComputeShader shader = Object.Instantiate(frustumComputeShader);
-        Mesh mesh = SceneData.propagatedMeshDefinitions[i].mesh;
-        Material material = Object.Instantiate(SceneData.propagatedMeshDefinitions[i].material);
-        TransformTransferData[] trs = new TransformTransferData[SceneData.propagatedObjectDatas[i].instanceDatas.Count];
-
-        for (int j = 0; j < SceneData.propagatedObjectDatas[i].instanceDatas.Count; j++)
-        {
-            TransformData data = SceneData.propagatedObjectDatas[i];
-            Matrix4x4 transferMatrix = Matrix4x4.TRS(data.instanceDatas[j].position, data.instanceDatas[j].rotation, data.instanceDatas[j].scale);
-
-            trs[j].trsMatrices = transferMatrix;
-        }
-
-
-        EditorRenderer renderer = new EditorRenderer(mesh, material, shader, trs, planesBuffer);
-
-        return renderer;
-    }
-
-   public static void CalculateFrustum()
+    public void CalculateFrustum()
     {
         if (!isInitialized) return;
         if (sceneCamera == null)
-        {
             FindSceneCamera();
-        }
 
         frustumPlanes = GeometryUtility.CalculateFrustumPlanes(sceneCamera);
         PropagationSystem.FrustumPlanes[] fp = new PropagationSystem.FrustumPlanes[6];
+
         for (int i = 0; i < frustumPlanes.Length; i++)
         {
             fp[i].normal = frustumPlanes[i].normal;
             fp[i].distance = frustumPlanes[i].distance + frustumSmoothDistance;
         }
 
-        
-            planesBuffer.SetData(fp);
-        
-        
+        planesBuffer.SetData(fp);
     }
 
-    static void Update(SceneView sceneView)
+    void Update(SceneView sceneView)
     {
         if (!isInitialized) return;
-
         if (Event.current.type != EventType.Repaint)
             return;
 
-     
-
-        if (Vector3.SqrMagnitude(sceneCamera.transform.position - lastCamPosition) > 25 || Quaternion.Angle(sceneCamera.transform.rotation,lastCamRot) > 15 )
+        if ((sceneCamera.transform.position - lastCamPosition).sqrMagnitude > 25 ||
+            Quaternion.Angle(sceneCamera.transform.rotation, lastCamRot) > 15)
         {
-            
             isFrustumCalculationNeeded = true;
             lastCamPosition = sceneCamera.transform.position;
-            
-
         }
-
-
 
         if (isPreviewing)
         {
             if (isFrustumCalculationNeeded)
-            {
                 CalculateFrustum();
-           
-                
 
-            }
             if (isFrustumWarm)
             {
-                for(int i =0; i < 10; i++)
-                {
+                for (int i = 0; i < 10; i++)
                     CalculateFrustum();
-                }
                 isFrustumWarm = false;
-
             }
-         
 
-            foreach (EditorRenderer renderer in renderers)
+            foreach (var renderer in renderers)
             {
                 if (isFrustumCalculationNeeded)
-                {
                     renderer.UpdateFrustum(planesBuffer);
-
-                }
-
                 renderer.Render();
-            
-               
-
             }
+
             isFrustumCalculationNeeded = false;
         }
-
-     
-
     }
 
-   
+    public void OnSceneDataChanged(int index)
+    {
+        if (!isInitialized) return;
 
+        TransformTransferData[] trs = new TransformTransferData[sceneData.propagatedObjectDatas[index].instanceDatas.Count];
 
+        for (int j = 0; j < sceneData.propagatedObjectDatas[index].instanceDatas.Count; j++)
+        {
+            TransformData data = sceneData.propagatedObjectDatas[index];
+            Matrix4x4 transferMatrix = Matrix4x4.TRS(
+                data.instanceDatas[j].position,
+                data.instanceDatas[j].rotation,
+                data.instanceDatas[j].scale
+            );
+            trs[j].trsMatrices = transferMatrix;
+        }
+
+        if (renderers.Count <= index)
+        {
+            DisposeRenderers();
+            renderers.Clear();
+            if (trs.Length <= 0) return;
+            SetupRenderers();
+        }
+
+        if (trs.Length <= 0) return;
+        isFrustumWarm = true;
+        renderers[index].Update(trs);
+    }
 }
 
 #endif
-
-
-
-

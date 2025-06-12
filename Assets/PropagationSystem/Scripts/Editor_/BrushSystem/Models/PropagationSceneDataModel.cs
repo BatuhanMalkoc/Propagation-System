@@ -23,9 +23,8 @@ public class PropagationSceneDataModel
     {
         sceneData.propagatedMeshDefinitions.Add(createdMeshData);
 
-        EditorPreviewer.SetPreviewMode(false);
-
         EditorUtility.SetDirty(sceneData);
+
         sceneData.OnValidateExternalCall();
     }
     public void RemoveMeshDefinition(int meshIndex)
