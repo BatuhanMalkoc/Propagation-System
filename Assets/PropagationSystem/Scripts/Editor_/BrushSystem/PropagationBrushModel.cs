@@ -67,14 +67,13 @@ public class PropagationBrushModel
             case PropagationBrushWindow.PropagationMode.Random:
                 
                stroke = PaintRandom();
-
+                OnStroke?.Invoke(stroke);
                 break;
 
-           
+            default:
+                Debug.LogWarning("Unsupported sample mode: " + Brush.sampleMode);
+                break;
         }
-
-
-       OnStroke?.Invoke(stroke);
 
     }
 

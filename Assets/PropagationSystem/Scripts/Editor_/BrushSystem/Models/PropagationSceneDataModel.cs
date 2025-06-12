@@ -72,18 +72,16 @@ public class PropagationSceneDataModel
             Debug.LogError("Mesh index out of range: " + index);
             return;
         }
+
+        Undo.RecordObject(sceneData, "Brush Stroke");
+
         sceneData.propagatedObjectDatas[index].instanceDatas.AddRange(transforms);
         sceneData.OnValidateExternalCall();
         EditorUtility.SetDirty(sceneData);
+      
     }
 
-    public void AddStrokeInstances(int index, StrokeData stroke)
-    {
-        
-     
-        sceneData.OnValidateExternalCall();
-        EditorUtility.SetDirty(sceneData);
-    }
+  
 
 }
 #endif

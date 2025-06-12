@@ -17,8 +17,10 @@ namespace PropagationSystem.Editor
         #region Static & Core References
 
         private PropagationBrushWindowPresenter presenter;
-        private static SceneData sceneData;
-        public static Action<int> OnBrushStroke;
+        private PropagationWindowViewTextures icons = new PropagationWindowViewTextures();
+
+      
+     
 
         #endregion
 
@@ -31,6 +33,7 @@ namespace PropagationSystem.Editor
         #region Brush - Runtime State
 
         private bool brushEnabled;
+        private SceneData view_SceneData;
         private float view_BrushSize = 1f;
         private int view_BrushDensity = 50;
         private int view_SelectedBrushIndex;
@@ -102,6 +105,8 @@ namespace PropagationSystem.Editor
         public Action<SceneData> OnSceneDataChanged;
         public Action<int> OnMeshRemoved;
         public Action OnPaintRequested;
+        public Action OnStartPreviewing;
+        public Action OnStopPreviewing;
         #endregion
 
         #endregion
@@ -144,8 +149,6 @@ namespace PropagationSystem.Editor
 
             window.presenter = new PropagationBrushWindowPresenter(window);
 
-         
-
             window.Initialize();
         }
 
@@ -159,75 +162,24 @@ namespace PropagationSystem.Editor
         private  void Initialize()
         {
 
-            SceneView.duringSceneGui -= OnSceneGUI; // double eklemeyi engelle
+            SceneView.duringSceneGui -= OnSceneGUI;
             SceneView.duringSceneGui += OnSceneGUI;
-            windowIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.PROPAGATIONICONGUID);
-            brushMeshPath = AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMESHGUID);
-            brushMaterialPath = AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMATERIALGUID); 
             
         }
 
-        public static SceneData GetCurrentSceneData()
-        {
-            return sceneData;
-        }
+     
      
         public static void CloseWindow()
         {
            
             GetWindow<PropagationBrushWindow>().Close();
         }
-      
+
         #endregion
 
-        private static void OnBrushApplied(BrushPaintData[] datas,bool isErase = false)
-        {
-
-            Undo.RecordObject(sceneData, "Brush Stroke");
-
-
-           
-
-            if (!isErase)
-            {
-                Debug.Log("Event çaðýrýldý data countýda þu :" + datas.Length);
-                for (int i = 0; i < datas.Length; i++)
-                {
 
 
 
-                    SavedPositions savedPositions = new SavedPositions();
-                    savedPositions.position = datas[i].position;
-                    savedPositions.rotation = datas[i].rotation;
-                    savedPositions.scale = datas[i].scale;
-
-
-
-
-                    //sceneData.propagatedObjectDatas[selectedMeshIndex_Static].trsMatrices.Add(savedPositions);
-
-                 
-                }
-
-
-                EditorUtility.SetDirty(sceneData);
-                //OnBrushStroke?.Invoke(selectedMeshIndex_Static);
-                EditorPreviewer.CalculateFrustum();
-            }
-            else
-            {
-                EditorUtility.SetDirty(sceneData);
-               // OnBrushStroke?.Invoke(selectedMeshIndex_Static);
-                EditorPreviewer.CalculateFrustum();
-            }
-        }
-
-
-        public static int GetSelectedMeshIndex()
-        {
-            // return selectedMeshIndex_Static;
-            return 0;
-        }
 
 
 
@@ -235,49 +187,52 @@ namespace PropagationSystem.Editor
         void GUI_Label()
         {
             GUILayout.Label("Propagation", EditorStyles.boldLabel); // Header
-        }
+        }  //*
 
         void GUI_UpdateIcon()
         {
-            Texture2D windowIcon = EditorGUIUtility.Load(windowIconPath) as Texture2D;
-            titleContent = new GUIContent(" Propagation", windowIcon);
-        }
+            titleContent = new GUIContent(" Propagation", icons.windowIcon);
+        } //*
 
-        void GUI_SceneData()
+        void GUI_SceneData() 
         {
-            sceneData = (SceneData)EditorGUILayout.ObjectField("Scene Data", sceneData, typeof(SceneData), false);
-            OnSceneDataChanged?.Invoke(sceneData);
-        }
+            view_SceneData = (SceneData)EditorGUILayout.ObjectField("Scene Data", view_SceneData, typeof(SceneData), false);
+            OnSceneDataChanged?.Invoke(view_SceneData);
+        }//*
 
         void GUI_MeshList()
         {
+            #region Header Label
             GUILayout.Label("Mesh Picker", EditorStyles.boldLabel);
+            #endregion
 
-            SerializedObject so = new SerializedObject(sceneData);
-            SerializedProperty meshList = so.FindProperty("propagatedMeshDefinitions");
-            so.ApplyModifiedProperties();
-
-            if (sceneData.propagatedMeshDefinitions.Count == 0)
+           
+            #region Empty Mesh List Warning
+            if (view_SceneData.propagatedMeshDefinitions.Count == 0)
             {
                 EditorGUILayout.HelpBox("Please Add Mesh To Propagate.", MessageType.Warning);
                 return;
             }
+            #endregion
 
+            #region Selected Mesh Preview
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
 
             GUILayout.BeginVertical();
 
-            Texture2D selectedPreview = AssetPreview.GetAssetPreview(sceneData.propagatedMeshDefinitions[view_SelectedMeshIndex].mesh);
+            Texture2D selectedPreview = AssetPreview.GetAssetPreview(view_SceneData.propagatedMeshDefinitions[view_SelectedMeshIndex].mesh);
 
             GUILayout.Label(selectedPreview, GUILayout.Width(150), GUILayout.Height(150));
-            GUILayout.Label("Selected Mesh: " + sceneData.propagatedMeshDefinitions[view_SelectedMeshIndex].name, EditorStyles.centeredGreyMiniLabel);
+            GUILayout.Label("Selected Mesh: " + view_SceneData.propagatedMeshDefinitions[view_SelectedMeshIndex].name, EditorStyles.centeredGreyMiniLabel);
 
             GUILayout.EndVertical();
 
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+            #endregion
 
+            #region Mesh Selection Buttons
             int buttonSize = 80;
             int padding = 10;
             int viewWidth = (int)EditorGUIUtility.currentViewWidth;
@@ -285,7 +240,7 @@ namespace PropagationSystem.Editor
 
             GUILayout.BeginVertical();
 
-            for (int i = 0; i < sceneData.propagatedMeshDefinitions.Count; i++)
+            for (int i = 0; i < view_SceneData.propagatedMeshDefinitions.Count; i++)
             {
                 if (i % buttonsPerRow == 0)
                 {
@@ -293,8 +248,8 @@ namespace PropagationSystem.Editor
                     GUILayout.BeginHorizontal();
                 }
 
-                Texture2D preview = AssetPreview.GetAssetPreview(sceneData.propagatedMeshDefinitions[i].mesh);
-                GUIContent buttonContent = new GUIContent(preview, sceneData.propagatedMeshDefinitions[i].name);
+                Texture2D preview = AssetPreview.GetAssetPreview(view_SceneData.propagatedMeshDefinitions[i].mesh);
+                GUIContent buttonContent = new GUIContent(preview, view_SceneData.propagatedMeshDefinitions[i].name);
 
                 if (GUILayout.Button(buttonContent, GUILayout.Width(buttonSize), GUILayout.Height(buttonSize)))
                 {
@@ -305,7 +260,9 @@ namespace PropagationSystem.Editor
 
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
+            #endregion
 
+            #region Bottom Bar: Create + Remove + Selection Changed Callback
             EditorGUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
@@ -327,8 +284,8 @@ namespace PropagationSystem.Editor
 
                 if (confirmed)
                 {
-                    OnMeshRemoved?.Invoke(view_SelectedMeshIndex);    
-                    view_SelectedMeshIndex = 0;      
+                    OnMeshRemoved?.Invoke(view_SelectedMeshIndex);
+                    view_SelectedMeshIndex = 0;
                 }
             }
 
@@ -336,13 +293,15 @@ namespace PropagationSystem.Editor
 
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
-        }
+            #endregion
+        } //*
+
 
         void GUI_BrushSet()
         {    
             view_SelectedBrushSet = (BrushSetSO)EditorGUILayout.ObjectField("Brush Set", view_SelectedBrushSet, typeof(BrushSetSO), false);
             OnBrushSetChanged?.Invoke(view_SelectedBrushSet);
-        }
+        } //*
 
         void GUI_BrushSettings()
         {
@@ -543,8 +502,7 @@ namespace PropagationSystem.Editor
             OnBrushModeChanged?.Invoke(brushMode);
             OnSampleModeChanged?.Invoke(SampleMode);
             #endregion
-        }
-
+        } //*
 
         void GUI_CreateNewMesh()
         {
@@ -558,11 +516,7 @@ namespace PropagationSystem.Editor
                 CreateNewMeshType.Instance.OnMeshCreated += OnNewMeshAdded;
                 CreateNewMeshType.Instance.OnWindowClosed += OnNewMeshAddWindowClosed;
             }
-        }
-
-
-       
-
+        } //*
 
         private BrushDataSO GetDefaultBrush()
         {
@@ -621,60 +575,52 @@ namespace PropagationSystem.Editor
             return loaded;
         }
 
-        
+
 
 
         private void OnGUI()
         {
+            #region Begin ScrollView
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
+            #endregion
 
-            
-
-                // 2) Mevcut tüm GUI içeriðinizi aþaðýdaki iki satýr arasýna alýn:
-                scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
-
+            #region Header UI
             GUI_Label();
             GUI_UpdateIcon();
+            #endregion
 
+            #region SceneData UI Container
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
             GUI_SceneData();
-
-            if (sceneData != null)
-            {
-                //if (selectedMeshIndex_Static >= sceneData.propagatedMeshDefinitions.Count || selectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
-                //{
-                  //  selectedMeshIndex_Static = 0;
-                    //selectedMeshIndex = 0;
-                //}
-            }
             EditorGUILayout.Space(2);
+            #endregion
 
-            if (sceneData == null)
+            #region Null Check - SceneData
+            if (view_SceneData == null)
             {
                 EditorGUILayout.HelpBox("Assign A Scene Data First", MessageType.Warning);
                 EditorGUILayout.EndVertical();
-                // 3) ScrollView'u kapatmadan önce return ediyorsunuz, bu durumda
-                //    EndScrollView() da çaðrýlmalý. Bu nedenle buraya bir EndScrollView() ekledik.
                 EditorGUILayout.EndScrollView();
                 return;
             }
-            else if (sceneData.propagatedMeshDefinitions.Count == 0)
+            else if (view_SceneData.propagatedMeshDefinitions.Count == 0)
             {
                 EditorGUILayout.HelpBox("Add Atleast One Mesh To Propagate", MessageType.Warning);
                 EditorGUILayout.EndVertical();
                 GUI_CreateNewMesh();
-                // Burada da return varsa EndScrollView() unutulmamalý:
                 EditorGUILayout.EndScrollView();
                 return;
             }
+            #endregion
 
+            #region Brush Set UI
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             GUI_BrushSet();
-
             EditorGUILayout.Space(2);
-
             EditorGUILayout.EndVertical();
+            #endregion
 
+            #region Null Check - BrushSet
             if (view_SelectedBrushSet == null)
             {
                 EditorGUILayout.HelpBox("Assign A Brush Set", MessageType.Warning);
@@ -682,9 +628,11 @@ namespace PropagationSystem.Editor
                 EditorGUILayout.EndScrollView();
                 return;
             }
+
             if (view_SelectedBrushSet.brushes.Count == 0)
             {
                 EditorGUILayout.HelpBox("Assign A Brush", MessageType.Warning);
+
                 string addBrushIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.ADDBRUSHICONGUID);
                 Texture2D addBrushIcon = EditorGUIUtility.Load(addBrushIconPath) as Texture2D;
 
@@ -693,54 +641,63 @@ namespace PropagationSystem.Editor
                     CreateNewBrushType.OpenWindow();
                     CreateNewBrushType.SetBrushSet(view_SelectedBrushSet);
                 }
+
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndScrollView();
                 return;
             }
+            #endregion
 
+            #region Brush Settings UI
             GUI_BrushSettings();
-
             EditorGUILayout.EndVertical();
-
             EditorGUILayout.Space(2);
+            #endregion
 
+            #region Mesh List UI
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
             GUI_MeshList();
-
             EditorGUILayout.EndVertical();
+            #endregion
 
-          
+            #region Preview Buttons
 
-            if (GUILayout.Button("Start Previewing"))
+            string previewButtonText = isPreviewing ? "Stop Previewing" : "Start Previewing";
+
+            if (GUILayout.Button(previewButtonText))
             {
-                EditorPreviewer.Setup(sceneData);
-                EditorPreviewer.SetPreviewMode(true);
-            }
-            if (GUILayout.Button("Stop Previewing"))
-            {
-                EditorPreviewer.SetPreviewMode(false);
-            }
+                isPreviewing = !isPreviewing;
 
-            
+                if (isPreviewing)
+                {
+                    OnStartPreviewing?.Invoke();
+                    EditorPreviewer.Setup(view_SceneData);
+                    EditorPreviewer.SetPreviewMode(true);
+                }
+                else
+                {
+                    OnStopPreviewing?.Invoke();
+                    EditorPreviewer.SetPreviewMode(false);
+                }
+            }
+            #endregion
 
-            // 4) Burada ScrollView'u kapatýyoruz:
+            #region End ScrollView
             EditorGUILayout.EndScrollView();
+            #endregion
+        } //*
 
-        
-}
 
 
 
 
         private void OnSceneGUI(SceneView sceneView)
         {
-            // 1. GUI Overlay
+          
             Handles.BeginGUI();
             GUI.Label(new Rect(10, 10, 200, 20), "Scene GUI aktif");
             Handles.EndGUI();
 
-            // 2. Event Validasyonu
             Event e = Event.current;
             if (e == null)
             {
@@ -748,21 +705,19 @@ namespace PropagationSystem.Editor
                 return;
             }
 
-            // 3. Brush Mode Güncelleme (Shift ile Erase Mode)
             BrushMode currentMode = e.shift ? BrushMode.Erase : brushMode;
             OnBrushModeChanged?.Invoke(currentMode);
 
-            // 4. Brush Aktifken Seçimi Engelle + Input Kullanýmý
             if (view_IsBrushEnabled)
             {
-                // Seçimi engelle (Brush aktifken)
+              
                 HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
 
-                // Mouse input (sadece sol click için)
+              
                 if (e.type == EventType.MouseDown && e.button == 0)
                 {
                     view_IsPressing = true;
-                    e.Use(); // Event’i tüketiyoruz
+                    e.Use(); 
                 }
 
                 if (view_IsPressing)
@@ -774,10 +729,9 @@ namespace PropagationSystem.Editor
             }
             else
             {
-                // Brush kapalýysa: Seçim normal Unity davranýþýna döner (bu kýsmý boþ býrakýyoruz)
-                // HandleUtility.AddDefaultControl çaðrýsý yapýlmazsa, Unity objeleri seçmeye devam eder.
+               
             }
-        }
+        } //*
 
 
 
@@ -793,7 +747,7 @@ namespace PropagationSystem.Editor
 
             if (!string.IsNullOrEmpty(path))
             {
-                sceneData = AssetDatabase.LoadAssetAtPath<SceneData>(path);
+                view_SceneData = AssetDatabase.LoadAssetAtPath<SceneData>(path);
             }
 
             string brushSetPath = EditorPrefs.GetString(BrushSet_PrefKey, null);
@@ -807,9 +761,9 @@ namespace PropagationSystem.Editor
 
             view_SelectedMeshIndex = EditorPrefs.GetInt(SelectedMeshIndex_PrefKey, 0);
 
-            if (sceneData != null)
+            if (view_SceneData != null)
             {
-                if (view_SelectedMeshIndex >= sceneData.propagatedMeshDefinitions.Count)
+                if (view_SelectedMeshIndex >= view_SceneData.propagatedMeshDefinitions.Count)
                 {
                     view_SelectedMeshIndex = 0;
                 }
@@ -835,9 +789,9 @@ namespace PropagationSystem.Editor
         {
            
             // Pencere kapanýrken seçilen referansýn yolunu kaydet
-            if (sceneData != null)
+            if (view_SceneData != null)
             {
-                string path = AssetDatabase.GetAssetPath(sceneData);
+                string path = AssetDatabase.GetAssetPath(view_SceneData);
                 EditorPrefs.SetString(SceneData_PrefKey, path);
                 
             }
@@ -857,6 +811,7 @@ namespace PropagationSystem.Editor
                 EditorPrefs.DeleteKey(BrushSet_PrefKey);
             }
 
+
             SceneView.duringSceneGui -= OnSceneGUI;
 
             EditorPrefs.SetFloat(BrushSize_PrefKey, view_BrushSize);
@@ -868,6 +823,64 @@ namespace PropagationSystem.Editor
     }
 
   
+
+public  class PropagationWindowViewTextures
+    {
+        private Texture2D _windowIcon;
+        private Texture2D _brushMesh;
+        private Texture2D _brushMaterial;
+
+        public Texture2D windowIcon
+        {
+            get
+            {
+                if (_windowIcon == null)
+                {
+                    _windowIcon = EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.PROPAGATIONICONGUID)) as Texture2D;
+                }
+                return _windowIcon;
+            }
+            set
+            {
+                _windowIcon = value;
+            }
+        }
+
+        public Texture2D brushMesh
+        {
+            get
+            {
+                if (_brushMesh == null)
+                {
+                    _brushMesh = EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMESHGUID)) as Texture2D;
+                }
+                return _brushMesh;
+            }
+            set
+            {
+                _brushMesh = value;
+            }
+        }
+
+        public Texture2D brushMaterial
+        {
+            get
+            {
+                if (_brushMaterial == null)
+                {
+                    _brushMaterial = EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHMATERIALGUID)) as Texture2D;
+                }
+                return _brushMaterial;
+            }
+            set
+            {
+                _brushMaterial = value;
+            }
+        }
+
+    }
+
+
 
 #endif
 }

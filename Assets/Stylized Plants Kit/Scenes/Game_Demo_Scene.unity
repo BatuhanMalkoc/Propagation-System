@@ -237,15 +237,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4459864850019384738, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 520.4699
+      value: 14.885925
       objectReference: {fileID: 0}
     - target: {fileID: 4459864850019384738, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 66.5
+      value: 77.6
       objectReference: {fileID: 0}
     - target: {fileID: 4459864850019384738, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 679.0719
+      value: 685.71
       objectReference: {fileID: 0}
     - target: {fileID: 4459864850019384738, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_LocalRotation.w
@@ -11107,10 +11107,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5de63ca81a14fd94b9b339120a009eae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SceneData: {fileID: 11400000, guid: 0cbad06e65a4ba9438378f4a3ea697f8, type: 2}
+  SceneData: {fileID: 11400000, guid: 3768248b29186574eaf8a190ec6bf484, type: 2}
   currentCamera: {fileID: 344909639}
   onCameraUpdate: {fileID: 344909636}
-  frustumCullingShader: {fileID: 0}
   frustumSmoothDistance: 2
   maxViewDistance: 1
 --- !u!1001 &1892376026

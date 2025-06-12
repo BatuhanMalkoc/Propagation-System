@@ -53,7 +53,7 @@ public static class EditorPreviewer
         lastCamPosition = sceneCamera.transform.position;
         Initialize();
 
-        PropagationBrushWindow.OnBrushStroke += OnSceneDataChanged;
+       // PropagationBrushWindow.OnBrushStroke += OnSceneDataChanged;
     }
     public static void SetPreviewMode(bool previewMode)
     {
@@ -69,7 +69,7 @@ public static class EditorPreviewer
 
     public static void Teardown()
     {
-        PropagationBrushWindow.OnBrushStroke -= OnSceneDataChanged;
+        //PropagationBrushWindow.OnBrushStroke -= OnSceneDataChanged;
         DisposeEverthing();
     }
     public static void OnSceneDataChanged(int index)

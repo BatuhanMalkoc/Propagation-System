@@ -26,16 +26,16 @@ public static class UndoListener
     {
         // Yapmasýný istediðiniz iþlemleri buraya yazýn.
         // Örneðin:
-        SceneData sceneData = PropagationBrushWindow.GetCurrentSceneData();
+        //SceneData sceneData = PropagationBrushWindow.GetCurrentSceneData();
 
       
 
-        for (int i = 0; i < sceneData.propagatedMeshDefinitions.Count; i++)
-        {
+      //  for (int i = 0; i < sceneData.propagatedMeshDefinitions.Count; i++)
+        //{
 
 
-            EditorPreviewer.OnSceneDataChanged(i);
-        }
+          //  EditorPreviewer.OnSceneDataChanged(i);
+        //}
 
        
     }

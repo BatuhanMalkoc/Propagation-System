@@ -8,7 +8,6 @@ namespace PropagationSystem.Editor
 {
     public class CreateNewMeshType : EditorWindow
     {
-        public static SceneData sceneData;
 
         public static CreateNewMeshType Instance { get; private set; }
 
@@ -37,14 +36,10 @@ namespace PropagationSystem.Editor
                 Instance.Focus(); // Eğer zaten açıksa öne getir
             }
                 
-            window.SetSceneData();
+           
             
         }
 
-        public  void SetSceneData()
-        {
-            sceneData = PropagationBrushWindow.GetCurrentSceneData();
-        }
 
         private void OnEnable()
         {

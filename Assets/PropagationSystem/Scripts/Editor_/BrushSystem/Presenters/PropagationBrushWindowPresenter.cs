@@ -71,6 +71,12 @@ namespace PropagationSystem.Editor
 
         #region View Event Handlers
 
+        public SceneData GetSceneData()
+        {
+            return _sceneDataModel.GetSceneData();
+        }
+
+
         private void HandlePaintRequested()
         {
             _brushModel.HandleBrushCommand();
