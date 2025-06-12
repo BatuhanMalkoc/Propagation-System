@@ -5,7 +5,7 @@ using PropagationSystem.Editor;
 
 namespace PropagationSystem.Editor
 {
-    public class BrushRandom2D : IBrush
+    public class BrushRandom2D 
     {
         #region Fields
         private List<PixelSample> validPixels = new List<PixelSample>();

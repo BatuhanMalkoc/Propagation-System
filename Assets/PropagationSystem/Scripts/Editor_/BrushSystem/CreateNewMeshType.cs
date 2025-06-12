@@ -1,7 +1,5 @@
-
-#if UNITY_EDITOR
-using PropagationSystem.Editor;
-using PropagationSystem;
+﻿#if UNITY_EDITOR
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,83 +7,182 @@ namespace PropagationSystem.Editor
 {
     public class CreateNewMeshType : EditorWindow
     {
-
         public static SceneData sceneData;
-        public Mesh mesh;
-        public Material material;
-        public string meshName;
-        public bool useFrustumCulling; // Added to indicate if frustum culling is used for this mesh
+
+        private Mesh mesh;
+        private Material material;
+        private string meshName;
+        private bool useFrustumCulling = true; // Obsolete
+
+        private GUIStyle headerStyle;
+        private GUIStyle errorStyle;
+
+        public Action<MeshData> OnMeshCreated;
 
         public static void OpenWindow()
         {
-            GetWindow<CreateNewMeshType>("Create New Mesh Type");
-            SetSceneData();
+            var window = GetWindow<CreateNewMeshType>("Add Mesh Type", true);
+            window.minSize = new Vector2(320, 400);
+            window.SetSceneData();
         }
 
-        public static void SetSceneData()
+        public  void SetSceneData()
         {
             sceneData = PropagationBrushWindow.GetCurrentSceneData();
-
         }
+
+        private void OnEnable()
+        {
+            InitStyles();
+        }
+
+        private void InitStyles()
+        {
+            headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16
+            };
+
+            errorStyle = new GUIStyle(EditorStyles.label)
+            {
+                normal = { textColor = Color.red },
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = true
+            };
+        }
+
         private void OnGUI()
         {
+            GUILayout.Space(10);
+            GUILayout.Label("📦 Add New Mesh Type", headerStyle);
+            DrawSeparator();
 
+            GUILayout.Space(8);
+            DrawMeshField();
+            DrawMeshPreview();
 
-            mesh = (Mesh)EditorGUILayout.ObjectField("Mesh", mesh, typeof(Mesh), false);
-            material = (Material)EditorGUILayout.ObjectField("Material", material, typeof(Material), false);
-            meshName = EditorGUILayout.TextField("Mesh Name", meshName);
-            useFrustumCulling = EditorGUILayout.Toggle("Use Frustum Culling", useFrustumCulling);
+            DrawMaterialField();
+            DrawNameField();
+
+            GUILayout.Space(12);
+            DrawSeparator();
+            GUILayout.Space(8);
+
+            DrawActionButtons();
+        }
+
+        private void DrawSeparator()
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 1);
+            EditorGUI.DrawRect(rect, new Color(0.3f, 0.3f, 0.3f, 1f));
+        }
+        private void DrawMeshPreview()
+        {
+            if (mesh == null) return;
+
+            GUILayout.Space(4);
+           
+           
+            Texture2D previewTexture = AssetPreview.GetAssetPreview(mesh);
+
+            if (previewTexture == null)
+            {
+                GUILayout.Label("Loading preview...");
+                // AssetPreview henüz hazır değil, tekrar repainte zorla
+                if (AssetPreview.IsLoadingAssetPreview(mesh.GetInstanceID()))
+                    Repaint();
+                return;
+            }
 
             GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
 
+            GUILayout.Label(previewTexture, GUILayout.Width(150), GUILayout.Height(150));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+        }
+        private void DrawMeshField()
+        {
+            GUILayout.Label("Mesh", EditorStyles.boldLabel);
+            mesh = (Mesh)EditorGUILayout.ObjectField(mesh, typeof(Mesh), false);
 
-            if (GUILayout.Button("Confirm", GUILayout.Height(32), GUILayout.Width(128)))
+            if (mesh == null)
+                GUILayout.Label("Please assign a mesh.", errorStyle);
+
+            GUILayout.Space(6);
+        }
+
+        private void DrawMaterialField()
+        {
+            GUILayout.Label("Material", EditorStyles.boldLabel);
+            material = (Material)EditorGUILayout.ObjectField(material, typeof(Material), false);
+
+            if (material == null)
+                GUILayout.Label("Please assign a material.", errorStyle);
+
+            GUILayout.Space(6);
+        }
+
+        private void DrawNameField()
+        {
+            GUILayout.Label("Mesh Name", EditorStyles.boldLabel);
+            meshName = EditorGUILayout.TextField(meshName);
+
+            if (string.IsNullOrWhiteSpace(meshName))
+                GUILayout.Label("Please enter a name.", errorStyle);
+
+            GUILayout.Space(6);
+        }
+
+        private void DrawActionButtons()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button("Cancel", GUILayout.Height(32), GUILayout.Width(120)))
             {
-
-                if (mesh != null && material != null && !string.IsNullOrEmpty(meshName))
-                {
-
-                    MeshData createdMeshData = new MeshData() { mesh = mesh, material = material, name = meshName, useFrustumCulling = useFrustumCulling };
-
-
-                    EditorPreviewer.SetPreviewMode(false);
-                    sceneData.propagatedMeshDefinitions.Add(createdMeshData);
-
-
-                    EditorUtility.SetDirty(sceneData);
-                    sceneData.OnValidateExternalCall();
-                 
-                    Close();
-                }
-                else
-                {
-                    bool isShown = false;
-                    if (mesh == null && !isShown)
-                    {
-                        EditorUtility.DisplayDialog("Error", "Please Assign A Mesh", "OK");
-                        isShown = true;
-                    }
-                    if (material == null && !isShown)
-                    {
-                        EditorUtility.DisplayDialog("Error", "Please Assign A Material", "OK");
-                        isShown = true;
-                    }
-                    if (string.IsNullOrEmpty(meshName) && !isShown)
-                    {
-                        EditorUtility.DisplayDialog("Error", "Please Enter A Mesh Name", "OK");
-                        isShown = true;
-                    }
-                }
-
-            }
-            if (GUILayout.Button("Cancel", GUILayout.Height(32), GUILayout.Width(128)))
-            {
-
                 Close();
             }
 
+            GUILayout.Space(16);
+
+            if (GUILayout.Button("Add Mesh Type", GUILayout.Height(32), GUILayout.Width(160)))
+            {
+                TryCreateMesh();
+            }
+
+            GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }
+
+
+
+        private void TryCreateMesh()
+        {
+            if (mesh == null || material == null || string.IsNullOrWhiteSpace(meshName))
+            {
+                EditorUtility.DisplayDialog("Error", "All fields must be filled.", "OK");
+                return;
+            }
+
+            var createdMeshData = new MeshData()
+            {
+                mesh = mesh,
+                material = material,
+                name = meshName,
+                useFrustumCulling = useFrustumCulling
+            };
+
+            sceneData.propagatedMeshDefinitions.Add(createdMeshData);
+            EditorPreviewer.SetPreviewMode(false);
+
+            EditorUtility.SetDirty(sceneData);
+            sceneData.OnValidateExternalCall();
+
+            Close();
+        }
+
     }
 }
 #endif

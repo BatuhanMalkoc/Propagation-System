@@ -1,150 +1,193 @@
-
-#if UNITY_EDITOR
+ï»¿#if UNITY_EDITOR
 using PropagationSystem.Editor;
 using PropagationSystem;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
-using System.Linq;
 
 namespace PropagationSystem.Editor
 {
-
     public class CreateNewBrushType : EditorWindow
     {
-
         public static BrushSetSO brushSet;
         public Texture2D maskTexture;
-        public string brushName;
-        public bool inverted;
+        public string brushName = "";
+
+        private GUIStyle headerStyle;
+        private GUIStyle separatorStyle;
+        private GUIStyle errorStyle;
+
+        private void OnEnable()
+        {
+            InitStyles();
+        }
+
+        private void InitStyles()
+        {
+            headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16
+            };
+
+            separatorStyle = new GUIStyle()
+            {
+                normal = { background = EditorGUIUtility.whiteTexture },
+                margin = new RectOffset(0, 0, 4, 4),
+                fixedHeight = 1
+            };
+
+            errorStyle = new GUIStyle(EditorStyles.label)
+            {
+                normal = { textColor = Color.red },
+                alignment = TextAnchor.MiddleCenter
+            };
+        }
 
         public static void OpenWindow()
         {
-           var window = GetWindow<CreateNewBrushType>("Create New Brush Type",true);
-            window.minSize = new Vector2(300, 400);
-            window.maxSize = new Vector2(400, 500);
+            var window = GetWindow<CreateNewBrushType>("Add New Brush", true);
+            window.minSize = new Vector2(320, 420);
+            window.maxSize = new Vector2(420, 500);
         }
 
         public static void SetBrushSet(BrushSetSO BrushSet)
         {
-
             brushSet = BrushSet;
         }
+
         private void OnGUI()
         {
+            GUILayout.Space(10);
+            GUILayout.Label("Add New Brush", headerStyle);
+            DrawSeparator();
 
-            GUILayout.BeginVertical();
+            DrawTextureField();
+            DrawNameField();
+
+            GUILayout.Space(10);
+            DrawSeparator();
+            GUILayout.Space(10);
+
+            DrawActionButtons();
+        }
+
+        private void DrawSeparator()
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 1);
+            EditorGUI.DrawRect(rect, new Color(0.3f, 0.3f, 0.3f, 1f));
+        }
+
+        private void DrawTextureField()
+        {
+            GUILayout.Label("Brush Mask Texture", EditorStyles.boldLabel);
+            GUILayout.Space(4);
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            maskTexture = (Texture2D)EditorGUILayout.ObjectField(maskTexture, typeof(Texture2D), false,GUILayout.Height(64),GUILayout.Width(64)) as Texture2D;
+            maskTexture = (Texture2D)EditorGUILayout.ObjectField(
+                maskTexture,
+                typeof(Texture2D),
+                false,
+                GUILayout.Width(128),
+                GUILayout.Height(128)
+            );
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
+            if (maskTexture == null)
+                GUILayout.Label("Please assign a texture.", errorStyle);
+
+            GUILayout.Space(10);
+        }
+
+        private void DrawNameField()
+        {
+            GUILayout.Label("Brush Name", EditorStyles.boldLabel);
+            GUILayout.Space(4);
+
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            GUILayout.Label("Brush Name");
-            brushName = EditorGUILayout.TextField(brushName);
+            brushName = EditorGUILayout.TextField(brushName, GUILayout.Width(240));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
+            if (string.IsNullOrEmpty(brushName))
+                GUILayout.Label("Please enter a name.", errorStyle);
+        }
+
+        private void DrawActionButtons()
+        {
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            GUILayout.Label("Inverted    ");
-            inverted = EditorGUILayout.Toggle(inverted);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
 
-            GUILayout.EndVertical();
-
-
-            
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Confirm", GUILayout.Height(32), GUILayout.Width(128)))
+            if (GUILayout.Button("Cancel", GUILayout.Height(32), GUILayout.Width(100)))
             {
-
-                if (maskTexture != null && !string.IsNullOrEmpty(brushName))
-                {
-
-                    BrushDataSO brushDataSO = ScriptableObject.CreateInstance<BrushDataSO>();
-                              
-                   brushDataSO.brushName = brushName;
-                    brushDataSO.maskTexture = maskTexture;
-                    brushDataSO.Invert = inverted;
-                    
-                   string absolutePath = EditorUtility.OpenFolderPanel("Select Folder To Save", "Assets", "");
-                    if (string.IsNullOrEmpty(absolutePath)) return;
-
-                    // Assets klasörüne göre relative path üret
-                    string relativePath = "Assets" + absolutePath.Substring(Application.dataPath.Length);
-
-                    // Asset dosyasýnýn adýný ekle
-                    string assetName = brushName.Replace(" ", "_");
-                    string uniqueFileName = GetUniqueAssetPath(absolutePath, assetName);
-
-                    string fullAssetPath = Path.Combine(relativePath, uniqueFileName);
-                    string fullFileSystemPath = Path.Combine(absolutePath, uniqueFileName);
-
-
-                    // Asset'i oluþtur
-                    AssetDatabase.CreateAsset(brushDataSO, fullAssetPath);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
-
-                    BrushDataSO loadedBrush = AssetDatabase.LoadAssetAtPath<BrushDataSO>(fullAssetPath);
-
-                    if (loadedBrush != null)
-                    {
-
-                        brushSet.brushes.Add(brushDataSO);
-
-                        EditorUtility.SetDirty(brushSet);
-                    }
-                    Close();
-                }
-                else
-                {
-                    bool isShown = false;
-                    if (maskTexture == null && !isShown)
-                    {
-                        EditorUtility.DisplayDialog("Error", "Please Assign A Mask Texture", "OK");
-                        isShown = true;
-                    }
-
-                    if (string.IsNullOrEmpty(brushName) && !isShown)
-                    {
-                        EditorUtility.DisplayDialog("Error", "Pleaese Assign A Brush Name", "OK");
-                        isShown = true;
-                    }
-                }
-
-            }
-            if (GUILayout.Button("Cancel", GUILayout.Height(32), GUILayout.Width(128)))
-            {
-
                 Close();
             }
 
+            if (GUILayout.Button("Add Brush", GUILayout.Height(32), GUILayout.Width(150)))
+            {
+                TryCreateBrushAsset();
+            }
+
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+        }
+
+        private void TryCreateBrushAsset()
+        {
+            if (maskTexture == null)
+            {
+                EditorUtility.DisplayDialog("Error", "Please assign a Brush Mask Texture.", "OK");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(brushName))
+            {
+                EditorUtility.DisplayDialog("Error", "Please enter a Brush Name.", "OK");
+                return;
+            }
+
+            var brushDataSO = ScriptableObject.CreateInstance<BrushDataSO>();
+            brushDataSO.brushName = brushName;
+            brushDataSO.maskTexture = maskTexture;
+
+            string absolutePath = EditorUtility.OpenFolderPanel("Select Folder to Save", "Assets", "");
+            if (string.IsNullOrEmpty(absolutePath)) return;
+
+            string relativePath = "Assets" + absolutePath.Substring(Application.dataPath.Length);
+            string fileName = brushName.Replace(" ", "_");
+            string uniqueName = GetUniqueAssetPath(absolutePath, fileName);
+            string assetPath = Path.Combine(relativePath, uniqueName);
+
+            AssetDatabase.CreateAsset(brushDataSO, assetPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            var loaded = AssetDatabase.LoadAssetAtPath<BrushDataSO>(assetPath);
+            if (loaded != null)
+            {
+                brushSet.brushes.Add(loaded);
+                EditorUtility.SetDirty(brushSet);
+            }
+
+            Close();
         }
 
         public static string GetUniqueAssetPath(string folderAbsolutePath, string baseName)
         {
-            string safeName = baseName.Replace(" ", "_");
             string extension = ".asset";
-
-            string finalName = safeName;
+            string finalName = baseName;
             int counter = 1;
 
             while (File.Exists(Path.Combine(folderAbsolutePath, finalName + extension)))
             {
-                finalName = $"{safeName}_{counter}";
+                finalName = $"{baseName}_{counter}";
                 counter++;
             }
 
-            return finalName + extension; // Örn: "Brush_2.asset"
+            return finalName + extension;
         }
     }
 }

@@ -1,5 +1,8 @@
+using PropagationSystem.Editor;
 using PropagationSystem;
 using UnityEngine;
+
+#if UNITY_ENGINE
 
 public interface IBrush 
 {
@@ -9,3 +12,4 @@ public interface IBrush
   
 
 }
+#endif
