@@ -57,6 +57,10 @@ public class PropagationBrushSettingsModel
     public Vector3 randomRotationMaxEuler { get; private set; } = Vector3.zero;
     public bool randomRotationPerComponent { get; private set; } = false;
 
+    public float staticSize { get; private set; } = 1f; // Static size for the brush, can be used for scaling
+
+    public float randomSizeMin { get; private set; } = 1f; // Minimum size for random scaling
+    public float randomSizeMax { get; private set; } = 1f; // Maximum size for random scaling
     #endregion
 
     #region Constructor
@@ -74,6 +78,15 @@ public class PropagationBrushSettingsModel
 
     #region Setters
 
+    public void SetRandomSize(float min, float max)
+    {
+        randomSizeMin = min;
+        randomSizeMax = max;
+    }
+    public void SetStaticSize(float size) => staticSize = size;
+    public void SetRandomSizeMin(float min) => randomSizeMin = min;
+
+    public void SetRandomSizeMax(float max) => randomSizeMax = max;
     public void SetInstanceCount(int count) => instanceCount = count;
     public void SetBrushSize(float size) => brushSize = size;
     public void SetBrushDensity(int density) => brushDensity = density;

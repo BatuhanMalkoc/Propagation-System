@@ -92,11 +92,25 @@ namespace PropagationSystem.Editor
             _view.OnRandomPositionPerComponentChanged += HandleRandomPositionPerComponentChanged; // *
             _view.OnRandomScalePerComponentChanged += HandleRandomScalePerComponentChanged;       // *
             _view.OnRandomRotationPerComponentChanged += HandleRandomRotationPerComponentChanged; // *
+            _view.OnStaticSizeChanged += HandleStaticSizeChanged; // *
+            _view.OnRandomSizeChanged += HandleRandomSizeChanged; // *
+
         }
 
         #endregion
 
         #region View Event Handlers
+
+        private void HandleStaticSizeChanged(float size) // *
+        {
+            _brushSettingsModel.SetStaticSize(size); // *
+        }
+
+        private void HandleRandomSizeChanged(float min, float max) // *
+        {
+            _brushSettingsModel.SetRandomSize(min, max); // *
+        }
+
         private void HandleStaticPositionOffsetChanged(Vector3 newValue) // *
         {
             _brushSettingsModel.SetStaticPositionOffset(newValue); // *

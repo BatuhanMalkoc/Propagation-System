@@ -48,6 +48,7 @@ namespace PropagationSystem.Editor
         private Vector3 view_staticPositionOffset;
         private Vector3 view_staticScale = Vector3.one;
         private Vector3 view_staticRotationEuler;
+        private float view_staticSize = 1f; // Static size for the brush, can be used for scaling
 
         private Vector3 view_randomPositionOffsetMin;
         private Vector3 view_randomPositionOffsetMax;
@@ -63,6 +64,8 @@ namespace PropagationSystem.Editor
 
         private bool view_useMultipleMeshes;
 
+        private float view_randomSizeMin = 1f; // Static size for the brush, can be used for scaling
+        private float view_randomSizeMax = 1f; // Static size for the brush, can be used for scaling
 
         private bool foldoutBrushSelection = true;
         private bool foldoutStaticTransform = true;
@@ -144,7 +147,8 @@ public event Action<Vector3,Vector3> OnRandomRotationChanged;
 public event Action<bool> OnRandomPositionPerComponentChanged;
 public event Action<bool> OnRandomScalePerComponentChanged;
 public event Action<bool> OnRandomRotationPerComponentChanged;
-
+        public event Action<float > OnStaticSizeChanged;
+        public event Action<float,float> OnRandomSizeChanged;
 
         #endregion
 
@@ -520,6 +524,8 @@ public event Action<bool> OnRandomRotationPerComponentChanged;
                 view_staticPositionOffset = EditorGUILayout.Vector3Field("Position Offset", view_staticPositionOffset);
                 view_staticScale = EditorGUILayout.Vector3Field("Scale", view_staticScale);
                 view_staticRotationEuler = EditorGUILayout.Vector3Field("Rotation (Euler)", view_staticRotationEuler);
+                view_staticSize = EditorGUILayout.FloatField("Static Size", view_staticSize);
+
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space(5);
             }
@@ -534,6 +540,11 @@ public event Action<bool> OnRandomRotationPerComponentChanged;
                 view_randomPositionOffsetMin = EditorGUILayout.Vector3Field("  Min", view_randomPositionOffsetMin);
                 view_randomPositionOffsetMax = EditorGUILayout.Vector3Field("  Max", view_randomPositionOffsetMax);
                 view_randomPositionOffsetPerComponent = EditorGUILayout.Toggle("Per Component", view_randomPositionOffsetPerComponent);
+
+                GUILayout.Label("Size Range", EditorStyles.miniBoldLabel);
+
+                view_randomSizeMin = EditorGUILayout.FloatField("  Min", view_randomSizeMin);
+                view_randomSizeMax = EditorGUILayout.FloatField("  Max", view_randomSizeMax);
 
                 GUILayout.Label("Scale Range", EditorStyles.miniBoldLabel);
                 view_randomScaleMin = EditorGUILayout.Vector3Field("  Min", view_randomScaleMin);
@@ -568,7 +579,9 @@ public event Action<bool> OnRandomRotationPerComponentChanged;
             OnRandomPositionPerComponentChanged?.Invoke(view_randomPositionOffsetPerComponent);
             OnRandomScalePerComponentChanged?.Invoke(view_randomScalePerComponent);
             OnRandomRotationPerComponentChanged?.Invoke(view_randomRotationPerComponent);
-         
+            OnStaticSizeChanged?.Invoke(view_staticSize);
+            OnRandomSizeChanged?.Invoke(view_randomSizeMin, view_randomSizeMax);
+
             #endregion
 
             GUI.backgroundColor = oldColor;

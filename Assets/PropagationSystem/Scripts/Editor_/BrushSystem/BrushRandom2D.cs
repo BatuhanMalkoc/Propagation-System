@@ -19,6 +19,8 @@ namespace PropagationSystem.Editor
         private float _brushDensity;
         private int _MeshIndex;
         private int _InstanceCount;
+
+        private AdditionalBrushData data;
         #endregion
 
         #region Public Methods
@@ -30,6 +32,7 @@ namespace PropagationSystem.Editor
             float density,
             int count,
             int meshIndex,
+            AdditionalBrushData additionalBrushData,
             Camera camera)
         {
             // Initialize fields
@@ -40,7 +43,7 @@ namespace PropagationSystem.Editor
             _brushDensity = density;
             _MeshIndex = meshIndex;
             _InstanceCount = count;
-
+            data = additionalBrushData;
             // Process texture and sample pixels
             Texture2D renderTexture = CreateReadableTexture(_originalTexture);
             SampleValidPixels(renderTexture);
@@ -152,15 +155,44 @@ namespace PropagationSystem.Editor
 
                 Vector3 forward = Vector3.Cross(tangent, normal);
 
-                Quaternion rotation = Quaternion.identity;
+                Quaternion baseRot = Quaternion.identity;
                 if (forward.sqrMagnitude > 0.001f)
-                    rotation = Quaternion.LookRotation(forward, normal);
+                    baseRot = Quaternion.LookRotation(forward, normal);
 
+                // 2) Calculate random/static offsets
+                Vector3 randomEuler = CalculateRandomRotation(
+                    data.randomRotationMinEuler,
+                    data.randomRotationMaxEuler);
+                Vector3 totalEulerOffset = data.staticRotationEuler + randomEuler;
+                Quaternion offsetRot = Quaternion.Euler(totalEulerOffset);
+
+                // 3) Final rotation
+                Quaternion finalRot = baseRot * offsetRot;
+
+                // 4) Position and scale
+                Vector3 randomPosOff = CalculateRandomPositionOffset(
+                    data.randomPositionOffsetMin,
+                    data.randomPositionOffsetMax);
+                Vector3 finalPos = hitInfo.point + data.staticPositionOffset + randomPosOff;
+
+                Vector3 randomScale = CalculateRandomScale(
+                    data.randomScaleMin,
+                    data.randomScaleMax);
+                
+                randomScale *= CalculateRandomSize(data.randomSizeMin, data.randomSizeMax);
+
+     
+
+                Vector3 finalScale = Vector3.Scale(data.staticScale, randomScale);
+
+               
+
+                // 5) Save
                 savedPositionsArray[i] = new SavedPositions
                 {
-                    position = hitInfo.point,
-                    rotation = rotation,
-                    scale = Vector3.one
+                    position = finalPos,
+                    rotation = finalRot,
+                    scale = finalScale * data.staticSize
                 };
             }
 
@@ -172,13 +204,37 @@ namespace PropagationSystem.Editor
             };
         }
 
-        private static bool IsValidQuaternion(Quaternion q)
+        private Vector3 CalculateRandomPositionOffset(Vector3 minRange,Vector3 maxRange)
         {
-            float magnitude = Mathf.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-            return magnitude > 0.0001f && !float.IsNaN(magnitude) && !float.IsInfinity(magnitude);
+           return new Vector3(
+                Random.Range(minRange.x, maxRange.x),
+                Random.Range(minRange.y, maxRange.y),
+                Random.Range(minRange.z, maxRange.z)
+            );
+        }
+     private Vector3 CalculateRandomRotation(Vector3 minRange,Vector3 maxRange)
+        {
+                        return new Vector3(
+                Random.Range(minRange.x, maxRange.x),
+                Random.Range(minRange.y, maxRange.y),
+                Random.Range(minRange.z, maxRange.z)
+            );
+        }
+
+        private Vector3 CalculateRandomScale(Vector3 minRange,Vector3 maxRange)
+        {
+            return new Vector3(
+                Random.Range(minRange.x, maxRange.x),
+                Random.Range(minRange.y, maxRange.y),
+                Random.Range(minRange.z, maxRange.z)
+            );
         }
         #endregion
 
+        private float CalculateRandomSize(float minSize, float maxSize)
+        {
+            return Random.Range(minSize, maxSize);
+        }
     }
 
     public struct PixelSample
@@ -187,5 +243,28 @@ namespace PropagationSystem.Editor
         public Color color;
     }
 }
+
+public struct AdditionalBrushData
+{
+    public Vector3 staticPositionOffset;
+    public Vector3 staticScale;
+    public Vector3 staticRotationEuler;
+    public float staticSize;
+
+    public Vector3 randomPositionOffsetMin;
+    public Vector3 randomPositionOffsetMax;
+    public bool randomPositionOffsetPerComponent;
+
+    public Vector3 randomScaleMin;
+    public Vector3 randomScaleMax;
+    public bool randomScalePerComponent;
+    public float randomSizeMin;
+    public float randomSizeMax;
+    public Vector3 randomRotationMinEuler;
+    public Vector3 randomRotationMaxEuler;
+    public bool randomRotationPerComponent; 
+
+}
+
 
 #endif

@@ -97,9 +97,28 @@ public class PropagationBrushModel
 
         int finalCount = Mathf.Max(1,Mathf.RoundToInt((brushDensity / 100f) * count));
 
+        AdditionalBrushData additionalData = new AdditionalBrushData
+        {
+            staticPositionOffset = Brush.staticPositionOffset,
+            staticScale = Brush.staticScale,
+            staticRotationEuler = Brush.staticRotationEuler,
+            randomPositionOffsetMin = Brush.randomPositionOffsetMin,
+            randomPositionOffsetMax = Brush.randomPositionOffsetMax,
+            randomPositionOffsetPerComponent = Brush.randomPositionOffsetPerComponent,
+            randomScaleMin = Brush.randomScaleMin,
+            randomScaleMax = Brush.randomScaleMax,
+            randomScalePerComponent = Brush.randomScalePerComponent,
+            randomRotationMinEuler = Brush.randomRotationMinEuler,
+            randomRotationMaxEuler = Brush.randomRotationMaxEuler,
+            randomRotationPerComponent = Brush.randomRotationPerComponent,
+            staticSize = Brush.staticSize,
+            randomSizeMin = Brush.randomSizeMin,
+            randomSizeMax = Brush.randomSizeMax,
+        };
+
         BrushRandom2D brushRandom2D = new BrushRandom2D();
 
-        StrokeData data = brushRandom2D.ApplyBrush(brushDataSO, brushPoint.brushPoint, brushPoint.brushNormal, brushSize,brushDensity,finalCount, meshIndex, sceneCamera);
+        StrokeData data = brushRandom2D.ApplyBrush(brushDataSO, brushPoint.brushPoint, brushPoint.brushNormal, brushSize,brushDensity,finalCount, meshIndex,additionalData, sceneCamera);
 
         return data;
     }
