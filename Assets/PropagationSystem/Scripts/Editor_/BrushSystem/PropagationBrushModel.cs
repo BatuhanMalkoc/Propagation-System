@@ -65,8 +65,17 @@ public class PropagationBrushModel
         switch (Brush.sampleMode)
         {
             case PropagationBrushWindow.PropagationMode.Random:
-                
-               stroke = PaintRandom();
+                stroke = PaintRandom();
+                OnStroke?.Invoke(stroke);
+                break;
+
+            case PropagationBrushWindow.PropagationMode.RandomWeighted:
+                stroke = PaintRandomWeighted();
+                OnStroke?.Invoke(stroke);
+                break;
+
+            case PropagationBrushWindow.PropagationMode.Grid:
+                stroke = PaintGrid();
                 OnStroke?.Invoke(stroke);
                 break;
 
@@ -74,8 +83,8 @@ public class PropagationBrushModel
                 Debug.LogWarning("Unsupported sample mode: " + Brush.sampleMode);
                 break;
         }
-
     }
+
 
     private StrokeData PaintRandom() {
 
@@ -86,11 +95,65 @@ public class PropagationBrushModel
         int count = Brush.instanceCount;
         int meshIndex = Brush.selectedMeshIndex;
 
+        int finalCount = Mathf.Max(1,Mathf.RoundToInt((brushDensity / 100f) * count));
+
         BrushRandom2D brushRandom2D = new BrushRandom2D();
 
-        StrokeData data = brushRandom2D.ApplyBrush(brushDataSO, brushPoint.brushPoint, brushPoint.brushNormal, brushSize,brushDensity, count, meshIndex, sceneCamera);
+        StrokeData data = brushRandom2D.ApplyBrush(brushDataSO, brushPoint.brushPoint, brushPoint.brushNormal, brushSize,brushDensity,finalCount, meshIndex, sceneCamera);
 
         return data;
+    }
+    private StrokeData PaintRandomWeighted()
+    {
+        BrushPoint brushPoint = brushDrawerModel.GetBrushPoint();
+        BrushDataSO brushDataSO = Brush.selectedBrushSO;
+        float brushSize = Brush.brushSize;
+        float brushDensity = Brush.brushDensity;
+        int count = Brush.instanceCount;
+        int meshIndex = Brush.selectedMeshIndex;
+
+        int finalCount = Mathf.Max(1,Mathf.RoundToInt((brushDensity / 100f) * count));
+
+        BrushRandomWeighted2D weightedBrush = new BrushRandomWeighted2D();
+
+        StrokeData data = weightedBrush.ApplyBrush(
+            brushDataSO,
+            brushPoint.brushPoint,
+            brushPoint.brushNormal,
+            brushSize,
+            brushDensity,
+            finalCount,
+            meshIndex,
+            sceneCamera
+        );
+
+        return data;
+    }
+
+    private StrokeData PaintGrid()
+    {
+        BrushPoint brushPoint = brushDrawerModel.GetBrushPoint();
+        BrushDataSO brushDataSO = Brush.selectedBrushSO;
+        float brushSize = Brush.brushSize;
+        float brushDensity = Brush.brushDensity;
+        int count = Brush.instanceCount;
+        int meshIndex = Brush.selectedMeshIndex;
+
+        // Density ile instanceCount oranı
+        int finalCount = Mathf.Max(1,Mathf.RoundToInt((brushDensity / 100f) * count));
+
+       
+
+        BrushGrid2D gridBrush = new BrushGrid2D();
+        return gridBrush.ApplyBrush(
+            brushDataSO,
+            brushPoint.brushPoint,
+            brushPoint.brushNormal,
+            brushSize,
+            finalCount,
+            meshIndex,
+            sceneCamera
+        );
     }
 
 

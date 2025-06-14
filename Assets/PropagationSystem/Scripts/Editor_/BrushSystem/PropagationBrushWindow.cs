@@ -1,11 +1,11 @@
 // Assets/PropagationSystem/Editor/PropagationBrushWindow.cs
-using UnityEditor;
-using UnityEngine;
 using PropagationSystem;
 using PropagationSystem.Editor;
-using System.IO;
 using System;
 using System.Collections;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
 namespace PropagationSystem.Editor
 {
 #if UNITY_EDITOR
@@ -44,6 +44,33 @@ namespace PropagationSystem.Editor
         private int view_InstanceCount;
         private bool view_IsPressing;
         private bool view_isPreviewing = false; // Preview mode state
+
+        private Vector3 view_staticPositionOffset;
+        private Vector3 view_staticScale = Vector3.one;
+        private Vector3 view_staticRotationEuler;
+
+        private Vector3 view_randomPositionOffsetMin;
+        private Vector3 view_randomPositionOffsetMax;
+        private bool view_randomPositionOffsetPerComponent;
+
+        private Vector3 view_randomScaleMin = Vector3.one;
+        private Vector3 view_randomScaleMax = Vector3.one;
+        private bool view_randomScalePerComponent;
+
+        private Vector3 view_randomRotationMinEuler;
+        private Vector3 view_randomRotationMaxEuler;
+        private bool view_randomRotationPerComponent;
+
+        private bool view_useMultipleMeshes;
+
+
+        private bool foldoutBrushSelection = true;
+        private bool foldoutStaticTransform = true;
+        private bool foldoutRandomTransform = false;
+        private bool foldoutCoreParameters = true;
+        private bool foldoutSamplingMode = true;
+        private bool foldoutBrushControls = true;
+
         #endregion
 
         #region Brush - Enums
@@ -58,7 +85,7 @@ namespace PropagationSystem.Editor
         {
             Random,
             RandomWeighted,
-            Density
+            Grid
         }
 
         private PropagationMode SampleMode = PropagationMode.Random;
@@ -91,21 +118,34 @@ namespace PropagationSystem.Editor
 
         #region UI - View Event Actions
 
-        public Action<float> OnBrushSizeChanged;
-        public Action<int> OnBrushDensityChanged;
-        public Action<bool> OnBrushToggled;
-        public Action<int> OnSelectedBrushChanged;
-        public Action<BrushSetSO> OnBrushSetChanged;
-        public Action<int> OnSelectedMeshChanged;
-        public Action<BrushMode> OnBrushModeChanged;
-        public Action<PropagationMode> OnSampleModeChanged;
-        public Action<int> OnInstanceCountChanged;
-        public Action<MeshData> OnMeshCreated;
-        public Action<SceneData> OnSceneDataChanged;
-        public Action<int> OnMeshRemoved;
-        public Action OnPaintRequested;
-        public Action OnStartPreviewing;
-        public Action OnStopPreviewing;
+     public event Action<float> OnBrushSizeChanged;
+public event Action<int> OnBrushDensityChanged;
+public event Action<bool> OnBrushToggled;
+public event Action<int> OnSelectedBrushChanged;
+public event Action<BrushSetSO> OnBrushSetChanged;
+public event Action<int> OnSelectedMeshChanged;
+public event Action<BrushMode> OnBrushModeChanged;
+public event Action<PropagationMode> OnSampleModeChanged;
+public event Action<int> OnInstanceCountChanged;
+public event Action<MeshData> OnMeshCreated;
+public event Action<SceneData> OnSceneDataChanged;
+public event Action<int> OnMeshRemoved;
+public event Action OnPaintRequested;
+public event Action OnStartPreviewing;
+public event Action OnStopPreviewing;
+
+// Yeni eklenen eventler
+public event Action<Vector3> OnStaticPositionOffsetChanged;
+public event Action<Vector3> OnStaticScaleChanged;
+public event Action<Vector3> OnStaticRotationChanged;
+public event Action<Vector3,Vector3> OnRandomPositionOffsetChanged;
+public event Action<Vector3,Vector3> OnRandomScaleChanged;
+public event Action<Vector3,Vector3> OnRandomRotationChanged;
+public event Action<bool> OnRandomPositionPerComponentChanged;
+public event Action<bool> OnRandomScalePerComponentChanged;
+public event Action<bool> OnRandomRotationPerComponentChanged;
+
+
         #endregion
 
         #endregion
@@ -153,12 +193,14 @@ namespace PropagationSystem.Editor
 
             window.minSize = new Vector2(409, 1004);
 
-            window.presenter = new PropagationBrushWindowPresenter(window);
+           
+                window.presenter = new PropagationBrushWindowPresenter(window);
+               
+            
 
-            window.Initialize();
         }
 
-       
+       //
 
         public  void Refresh()
         {
@@ -311,206 +353,227 @@ namespace PropagationSystem.Editor
             OnBrushSetChanged?.Invoke(view_SelectedBrushSet);
         } //*
 
-        void GUI_BrushSettings()
+        private void GUI_BrushSettings()
         {
             Color oldColor = GUI.backgroundColor;
-
             GUILayout.Label("Brush Settings", EditorStyles.boldLabel);
 
-            if (view_CurrentBrushTexture != null)
+
+
+            #region Brush Selection
+            foldoutBrushSelection = EditorGUILayout.Foldout(foldoutBrushSelection, "Brush Selection", true);
+            if (foldoutBrushSelection)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.FlexibleSpace();
-                GUILayout.BeginVertical();
+                EditorGUILayout.BeginVertical("box");
 
-                GUILayout.Label(view_CurrentBrushTexture, GUILayout.Height(128), GUILayout.Width(128));
-                GUILayout.Label("Selected Brush: " + view_SelectedBrushName);
-
-                GUILayout.EndVertical();
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-            }
-
-            int selectedBrushIndex = -1;
-            int buttonSize = 64;
-            int padding = 5;
-
-            int viewWidth = (int)EditorGUIUtility.currentViewWidth;
-            int buttonsPerRow = Mathf.Max(1, (viewWidth - padding) / (buttonSize + padding));
-
-            GUILayout.BeginVertical();
-
-            for (int i = 0; i < view_SelectedBrushSet.brushes.Count; i++)
-            {
-                if (i % buttonsPerRow == 0)
+                // <<< Seçili Brush Önizleme >>>
+                if (view_CurrentBrushTexture != null)
                 {
-                    if (i != 0) GUILayout.EndHorizontal();
                     GUILayout.BeginHorizontal();
+                    GUILayout.FlexibleSpace();
+                    GUILayout.BeginVertical();
+                    GUILayout.Label(view_CurrentBrushTexture, GUILayout.Width(128), GUILayout.Height(128));
+                    GUILayout.Label($"Selected Brush: {view_SelectedBrushName}", EditorStyles.centeredGreyMiniLabel);
+                    GUILayout.EndVertical();
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                    EditorGUILayout.Space(8);
                 }
 
-                GUIContent buttonContent = new GUIContent("", view_SelectedBrushSet.brushes[i].maskTexture);
+                GUILayout.Label("Select Brush", EditorStyles.miniBoldLabel);
+                int buttonSize = 64, padding = 5;
+                int viewWidth = (int)EditorGUIUtility.currentViewWidth;
+                int buttonsPerRow = Mathf.Max(1, (viewWidth - padding) / (buttonSize + padding));
 
-                if (GUILayout.Button(buttonContent, GUILayout.Width(buttonSize), GUILayout.Height(buttonSize)))
+                for (int i = 0; i < view_SelectedBrushSet.brushes.Count; i++)
                 {
-                    this.view_SelectedBrushIndex = i;
-                    OnSelectedBrushChanged?.Invoke(view_SelectedBrushIndex);
-                    Debug.Log(this.view_SelectedBrushIndex);
-                }
-            }
-
-            GUILayout.EndHorizontal();
-            GUILayout.EndVertical();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-
-            string addBrushIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.ADDBRUSHICONGUID);
-            string removeBrushIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.REMOVEBRUSHICONGUID);
-            Texture2D addBrushIcon = EditorGUIUtility.Load(addBrushIconPath) as Texture2D;
-            Texture2D removeBrushIcon = EditorGUIUtility.Load(removeBrushIconPath) as Texture2D;
-
-            if (GUILayout.Button(addBrushIcon, GUILayout.Width(48), GUILayout.Height(48)))
-            {
-                CreateNewBrushType.OpenWindow();
-                CreateNewBrushType.SetBrushSet(view_SelectedBrushSet);
-            }
-
-            if (GUILayout.Button(removeBrushIcon, GUILayout.Width(48), GUILayout.Height(48)))
-            {
-                bool confirmed = EditorUtility.DisplayDialog(
-                    "Are You Sure?",
-                    "This will delete selected brush",
-                    "Delete",
-                    "Cancel"
-                );
-
-                if (confirmed)
-                {
-                    view_SelectedBrushSet.brushes.RemoveAt(this.view_SelectedBrushIndex);
-
-                    if (view_SelectedBrushSet.brushes.Count == 0)
+                    if (i % buttonsPerRow == 0)
                     {
-                        view_SelectedBrushSet.brushes.Add(GetDefaultBrush());
+                        if (i != 0) GUILayout.EndHorizontal();
+                        GUILayout.BeginHorizontal();
                     }
 
-                    EditorUtility.SetDirty(view_SelectedBrushSet);
-                    selectedBrushIndex = 0;
+                    Texture2D preview = view_SelectedBrushSet.brushes[i].maskTexture;
+                    if (GUILayout.Button(preview, GUILayout.Width(buttonSize), GUILayout.Height(buttonSize)))
+                    {
+                        view_SelectedBrushIndex = i;
+                        view_CurrentBrushTexture = preview;
+                        view_SelectedBrushName = view_SelectedBrushSet.brushes[i].brushName;
+                        OnSelectedBrushChanged?.Invoke(view_SelectedBrushIndex);
+                    }
                 }
-            }
+                GUILayout.EndHorizontal();
 
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            view_BrushSize = EditorGUILayout.Slider("Brush Size", view_BrushSize, 0.1f, 100f);
-            view_BrushDensity = EditorGUILayout.IntSlider("Density", view_BrushDensity, 1, 100);
-            view_InstanceCount = EditorGUILayout.IntSlider("Instance Count", view_InstanceCount,1,10000);
-
-            EditorGUILayout.Space(10);
-
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-
-            string brushIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHICONGUID);
-            string eraserIconPath = AssetDatabase.GUIDToAssetPath(GUIDS.ERASEICONGUID);
-            Texture2D brushIcon = EditorGUIUtility.Load(brushIconPath) as Texture2D;
-            Texture2D eraserIcon = EditorGUIUtility.Load(eraserIconPath) as Texture2D;
-
-            if (brushMode == BrushMode.Paint)
-            {
-                GUI.backgroundColor = Color.cyan;
-            }
-
-            if (GUILayout.Button(brushIcon, GUILayout.Width(64), GUILayout.Height(64)))
-            {
-                if (!view_IsBrushEnabled)
+                // Add / Remove
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                Texture2D addIcon = EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.ADDBRUSHICONGUID)) as Texture2D;
+                Texture2D removeIcon = EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.REMOVEBRUSHICONGUID)) as Texture2D;
+                if (GUILayout.Button(addIcon, GUILayout.Width(48), GUILayout.Height(48)))
                 {
-                    view_IsBrushEnabled = true;
+                    CreateNewBrushType.OpenWindow();
+                    CreateNewBrushType.SetBrushSet(view_SelectedBrushSet);
+                }
+                if (GUILayout.Button(removeIcon, GUILayout.Width(48), GUILayout.Height(48)))
+                {
+                    bool ok = EditorUtility.DisplayDialog("Confirm", "Delete selected brush?", "Yes", "No");
+                    if (ok)
+                    {
+                        view_SelectedBrushSet.brushes.RemoveAt(view_SelectedBrushIndex);
+                        if (view_SelectedBrushSet.brushes.Count == 0)
+                            view_SelectedBrushSet.brushes.Add(GetDefaultBrush());
+                        EditorUtility.SetDirty(view_SelectedBrushSet);
+                        view_SelectedBrushIndex = 0;
+                        OnSelectedBrushChanged?.Invoke(view_SelectedBrushIndex);
+                    }
+                }
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
+            }
+            #endregion
+
+           
+
+            #region Core Parameters
+            foldoutCoreParameters = EditorGUILayout.Foldout(foldoutCoreParameters, "Core Parameters", true);
+            if (foldoutCoreParameters)
+            {
+                EditorGUILayout.BeginVertical("box");
+                view_BrushSize = EditorGUILayout.Slider("Brush Size", view_BrushSize, 0.1f, 100f);
+                view_BrushDensity = EditorGUILayout.IntSlider("Density", view_BrushDensity, 1, 100);
+                view_InstanceCount = EditorGUILayout.IntSlider("Instance Count", view_InstanceCount, 1, 10000);
+                view_useMultipleMeshes = EditorGUILayout.Toggle("Use Multiple Meshes", view_useMultipleMeshes);
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
+                EditorGUILayout.BeginVertical("box");
+
+                // Paint / Erase icons (centered)
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+
+                // Paint icon
+                if (brushMode == BrushMode.Paint) GUI.backgroundColor = Color.cyan;
+                if (GUILayout.Button(
+                        EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.BRUSHICONGUID)) as Texture2D,
+                        GUILayout.Width(48), GUILayout.Height(48)))
+                {
+                    brushMode = BrushMode.Paint;
+                    OnBrushModeChanged?.Invoke(brushMode);
+                }
+                GUI.backgroundColor = oldColor;
+
+                GUILayout.Space(10);
+
+                // Erase icon
+                if (brushMode == BrushMode.Erase) GUI.backgroundColor = new Color(1f, 0.5f, 0.5f); // light red
+                if (GUILayout.Button(
+                        EditorGUIUtility.Load(AssetDatabase.GUIDToAssetPath(GUIDS.ERASEICONGUID)) as Texture2D,
+                        GUILayout.Width(48), GUILayout.Height(48)))
+                {
+                    brushMode = BrushMode.Erase;
+                    OnBrushModeChanged?.Invoke(brushMode);
+                }
+                GUI.backgroundColor = oldColor;
+
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                EditorGUILayout.Space(5);
+
+                // Toggle brush on/off
+                if (GUILayout.Button(view_IsBrushEnabled ? "Disable Brush" : "Enable Brush"))
+                {
+                    view_IsBrushEnabled = !view_IsBrushEnabled;
                     OnBrushToggled?.Invoke(view_IsBrushEnabled);
                 }
 
-                brushMode = BrushMode.Paint;
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
             }
+         
+           
+            #endregion
 
-            GUI.backgroundColor = oldColor;
 
-            string brushButtonText = view_IsBrushEnabled ? "Disable Brush" : "Enable Brush";
-
-            if (GUILayout.Button(brushButtonText, GUILayout.Width(128), GUILayout.Height(64)))
+            #region Sampling Mode
+            foldoutSamplingMode = EditorGUILayout.Foldout(foldoutSamplingMode, "Sampling Mode", true);
+            if (foldoutSamplingMode)
             {
-                view_IsBrushEnabled = !view_IsBrushEnabled;
-                OnBrushToggled?.Invoke(view_IsBrushEnabled);
+                EditorGUILayout.BeginVertical("box");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Toggle(SampleMode == PropagationMode.Grid, "Grid", "Button")) SampleMode = PropagationMode.Grid;
+                if (GUILayout.Toggle(SampleMode == PropagationMode.Random, "Random", "Button")) SampleMode = PropagationMode.Random;
+                if (GUILayout.Toggle(SampleMode == PropagationMode.RandomWeighted, "Weighted", "Button")) SampleMode = PropagationMode.RandomWeighted;
+                GUILayout.EndHorizontal();
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
             }
+            #endregion
 
-            if (brushMode == BrushMode.Erase)
+            #region Static Transform
+            foldoutStaticTransform = EditorGUILayout.Foldout(foldoutStaticTransform, "Static Transform", true);
+            if (foldoutStaticTransform)
             {
-                GUI.backgroundColor = Color.red;
+                EditorGUILayout.BeginVertical("box");
+                view_staticPositionOffset = EditorGUILayout.Vector3Field("Position Offset", view_staticPositionOffset);
+                view_staticScale = EditorGUILayout.Vector3Field("Scale", view_staticScale);
+                view_staticRotationEuler = EditorGUILayout.Vector3Field("Rotation (Euler)", view_staticRotationEuler);
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
             }
+            #endregion
 
-            if (GUILayout.Button(eraserIcon, GUILayout.Width(64), GUILayout.Height(64)))
+            #region Random Transform
+            foldoutRandomTransform = EditorGUILayout.Foldout(foldoutRandomTransform, "Random Transform", true);
+            if (foldoutRandomTransform)
             {
-                if (!view_IsBrushEnabled)
-                {
-                    view_IsBrushEnabled = true;
-                    OnBrushToggled?.Invoke(view_IsBrushEnabled);
-                }
+                EditorGUILayout.BeginVertical("box");
+                GUILayout.Label("Position Offset Range", EditorStyles.miniBoldLabel);
+                view_randomPositionOffsetMin = EditorGUILayout.Vector3Field("  Min", view_randomPositionOffsetMin);
+                view_randomPositionOffsetMax = EditorGUILayout.Vector3Field("  Max", view_randomPositionOffsetMax);
+                view_randomPositionOffsetPerComponent = EditorGUILayout.Toggle("Per Component", view_randomPositionOffsetPerComponent);
 
-                brushMode = BrushMode.Erase;
+                GUILayout.Label("Scale Range", EditorStyles.miniBoldLabel);
+                view_randomScaleMin = EditorGUILayout.Vector3Field("  Min", view_randomScaleMin);
+                view_randomScaleMax = EditorGUILayout.Vector3Field("  Max", view_randomScaleMax);
+                view_randomScalePerComponent = EditorGUILayout.Toggle("Per Component", view_randomScalePerComponent);
+
+                GUILayout.Label("Rotation Range (Euler)", EditorStyles.miniBoldLabel);
+                view_randomRotationMinEuler = EditorGUILayout.Vector3Field("  Min", view_randomRotationMinEuler);
+                view_randomRotationMaxEuler = EditorGUILayout.Vector3Field("  Max", view_randomRotationMaxEuler);
+                view_randomRotationPerComponent = EditorGUILayout.Toggle("Per Component", view_randomRotationPerComponent);
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
             }
+            #endregion
 
-            GUI.backgroundColor = oldColor;
+          
 
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+         
 
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-
-            if (SampleMode == PropagationMode.Random)
-            {
-                GUI.backgroundColor = Color.green;
-            }
-
-            if (GUILayout.Button("Random", GUILayout.Width(128), GUILayout.Height(64)))
-            {
-                SampleMode = PropagationMode.Random;
-            }
-
-            GUI.backgroundColor = oldColor;
-
-            if (SampleMode == PropagationMode.RandomWeighted)
-            {
-                GUI.backgroundColor = Color.green;
-            }
-
-            if (GUILayout.Button("Random Weighted", GUILayout.Width(128), GUILayout.Height(64)))
-            {
-                SampleMode = PropagationMode.RandomWeighted;
-            }
-
-            GUI.backgroundColor = oldColor;
-
-            if (SampleMode == PropagationMode.Density)
-            {
-                GUI.backgroundColor = Color.green;
-            }
-
-            if (GUILayout.Button("By Density", GUILayout.Width(128), GUILayout.Height(64)))
-            {
-                SampleMode = PropagationMode.Density;
-            }
-
-            GUI.backgroundColor = oldColor;
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            #region Presenter Calls 
+            #region Presenter Calls
             OnBrushSizeChanged?.Invoke(view_BrushSize);
             OnBrushDensityChanged?.Invoke(view_BrushDensity);
             OnInstanceCountChanged?.Invoke(view_InstanceCount);
             OnBrushModeChanged?.Invoke(brushMode);
             OnSampleModeChanged?.Invoke(SampleMode);
+            OnStaticPositionOffsetChanged?.Invoke(view_staticPositionOffset);
+            OnStaticScaleChanged?.Invoke(view_staticScale);
+            OnStaticRotationChanged?.Invoke(view_staticRotationEuler);
+            OnRandomPositionOffsetChanged?.Invoke(view_randomPositionOffsetMin,view_randomPositionOffsetMax);
+            OnRandomScaleChanged?.Invoke(view_randomScaleMin,view_randomScaleMax);
+            OnRandomRotationChanged?.Invoke(view_randomRotationMinEuler,view_randomRotationMaxEuler);
+            OnRandomPositionPerComponentChanged?.Invoke(view_randomPositionOffsetPerComponent);
+            OnRandomScalePerComponentChanged?.Invoke(view_randomScalePerComponent);
+            OnRandomRotationPerComponentChanged?.Invoke(view_randomRotationPerComponent);
+         
             #endregion
-        } //*
+
+            GUI.backgroundColor = oldColor;
+        }
+
 
         void GUI_CreateNewMesh()
         {
@@ -748,6 +811,13 @@ namespace PropagationSystem.Editor
         #region On Enable Disable
         private void OnEnable()
         {
+            if (presenter == null)
+            {
+                presenter = new PropagationBrushWindowPresenter(this);
+                Debug.Log("Presnter Oluþturuldu");
+            }
+            Initialize();
+
             string path = EditorPrefs.GetString(SceneData_PrefKey, null);
 
 

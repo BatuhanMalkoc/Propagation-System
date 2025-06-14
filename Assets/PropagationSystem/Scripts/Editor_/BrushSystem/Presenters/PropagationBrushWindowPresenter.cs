@@ -15,6 +15,12 @@ namespace PropagationSystem.Editor
         private readonly PropagationSceneDataModel _sceneDataModel;
         private readonly EditorPreviewer _editorPreviewerModel;
 
+        private Vector2 lastMousePos;
+        private double densityFeedbackTime;
+        private const float feedbackDuration = 1.0f; // saniye
+        private Vector2 _lastMouseDragPos;
+        private bool _isAdjustingDensity = false;
+
         #endregion
 
         #region Constructor
@@ -48,7 +54,12 @@ namespace PropagationSystem.Editor
                 _brushModel.DrawBrush(view.camera);
                 view.Repaint();
             }
+
+            
+          
         }
+
+        
 
         #endregion
 
@@ -71,12 +82,65 @@ namespace PropagationSystem.Editor
             _view.OnInstanceCountChanged += HandleInstanceCountChanged;
             _view.OnStartPreviewing += HandleStartPreview;
             _view.OnStopPreviewing += HandleStopPreview;
+
+            _view.OnStaticPositionOffsetChanged += HandleStaticPositionOffsetChanged; // *
+            _view.OnStaticScaleChanged += HandleStaticScaleChanged;                   // *
+            _view.OnStaticRotationChanged += HandleStaticRotationChanged;             // *
+            _view.OnRandomPositionOffsetChanged += HandleRandomPositionOffsetChanged; // *
+            _view.OnRandomScaleChanged += HandleRandomScaleChanged;                   // *
+            _view.OnRandomRotationChanged += HandleRandomRotationChanged;             // *
+            _view.OnRandomPositionPerComponentChanged += HandleRandomPositionPerComponentChanged; // *
+            _view.OnRandomScalePerComponentChanged += HandleRandomScalePerComponentChanged;       // *
+            _view.OnRandomRotationPerComponentChanged += HandleRandomRotationPerComponentChanged; // *
         }
 
         #endregion
 
         #region View Event Handlers
+        private void HandleStaticPositionOffsetChanged(Vector3 newValue) // *
+        {
+            _brushSettingsModel.SetStaticPositionOffset(newValue); // *
+        }
 
+        private void HandleStaticScaleChanged(Vector3 newValue) // *
+        {
+            _brushSettingsModel.SetStaticScale(newValue); // *
+        }
+
+        private void HandleStaticRotationChanged(Vector3 newValue) // *
+        {
+            _brushSettingsModel.SetStaticRotation(newValue); // *
+        }
+
+        private void HandleRandomPositionOffsetChanged(Vector3 minRange,Vector3 maxRange) // *
+        {
+            _brushSettingsModel.SetRandomPositionOffset(minRange,maxRange); // *
+        }
+
+        private void HandleRandomScaleChanged(Vector3 minRange, Vector3 maxRange) // *
+        {
+            _brushSettingsModel.SetRandomScale(minRange,maxRange); // *
+        }
+
+        private void HandleRandomRotationChanged(Vector3 minRange, Vector3 maxRange) // *
+        {
+            _brushSettingsModel.SetRandomRotation(minRange,maxRange); // *
+        }
+
+        private void HandleRandomPositionPerComponentChanged(bool newValue) // *
+        {
+            _brushSettingsModel.SetRandomPositionOffsetPerComponent(newValue); // *
+        }
+
+        private void HandleRandomScalePerComponentChanged(bool newValue) // *
+        {
+            _brushSettingsModel.SetRandomScalePerComponent(newValue); // *
+        }
+
+        private void HandleRandomRotationPerComponentChanged(bool newValue) // *
+        {
+            _brushSettingsModel.SetRandomRotationPerComponent(newValue); // *
+        }
         private void HandleBrushSizeChanged(float size)
         {
             _brushSettingsModel.SetBrushSize(size);
@@ -145,6 +209,8 @@ namespace PropagationSystem.Editor
         private void HandleMeshRemoved(int meshIndex)
         {
             _sceneDataModel.RemoveMeshDefinition(meshIndex);
+            _editorPreviewerModel.SetPreviewMode(false);
+            _view.SetPreviewMode(false);
         }
 
         private void HandleStartPreview()
@@ -168,6 +234,7 @@ namespace PropagationSystem.Editor
         {
             Debug.Log("OnBrushApplied called with " + stroke.savedPositions.Length + " paint data items.");
             _sceneDataModel.AddInstances(stroke.meshIndex, stroke.savedPositions);
+            _editorPreviewerModel.OnSceneDataChanged(stroke.meshIndex);
         }
 
         #endregion
